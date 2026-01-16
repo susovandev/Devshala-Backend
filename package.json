@@ -4,11 +4,20 @@
 	"description": "",
 	"main": "main.js",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"dev": "tsx watch src/main.ts",
+		"build": "tsc && tsc-alias",
+		"start": "node dist/main.js"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
-	"type": "module"
+	"type": "module",
+	"devDependencies": {
+		"@types/node": "^25.0.9",
+		"tsc-alias": "^1.8.16",
+		"tsx": "^4.21.0",
+		"typescript": "^5.9.3"
+	}
 }
 

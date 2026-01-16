@@ -10,6 +10,7 @@ export default async function bootStrapApplication() {
   if (env.NODE_ENV !== 'test') {
     app.listen(env.PORT, () => {
       Logger.info(`${SERVICE_NAME} is running at http://${HOST}:${PORT} in ${NODE_ENV} mode`);
+      Logger.info(`Health check route: http://${HOST}:${PORT}/healthcheck`);
     });
   }
 }

@@ -1,52 +1,52 @@
 {
-	"$schema": "https://json.schemastore.org/tsconfig",
-	"compilerOptions": {
-		//  Language & Environment
-		"target": "ES2022",
-		"lib": ["ES2022"],
-		"module": "NodeNext",
-		"moduleResolution": "NodeNext",
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    //  Language & Environment
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
 
-		// Paths
-		"rootDir": "./src",
-		"outDir": "./dist",
+    // Paths
+    "rootDir": "./src",
+    "outDir": "./dist",
 
-		// Strictness
-		"strict": true,
-		"noImplicitAny": true,
-		"strictNullChecks": true,
-		"noImplicitReturns": true,
-		"noFallthroughCasesInSwitch": true,
+    // Strictness
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
 
-		// Interop
-		"esModuleInterop": true,
-		"allowSyntheticDefaultImports": true,
-		"resolveJsonModule": true,
+    // Interop
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
 
-		// Emit
-		"sourceMap": true,
-		"declaration": false,
-		"removeComments": true,
+    // Emit
+    "sourceMap": true,
+    "declaration": false,
+    "removeComments": true,
 
-		// Performance
-		"skipLibCheck": true,
-		"forceConsistentCasingInFileNames": true,
+    // Performance
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
 
-		// Base URL & Aliases
-		"baseUrl": "./src",
-		"paths": {
-			"@config/*": ["config/*"],
-			"@modules/*": ["modules/*"],
-			"@middlewares/*": ["middlewares/*"],
-			"@utils/*": ["utils/*"],
-			"@libs/*": ["libs/*"],
-			"@jobs/*": ["jobs/*"],
-			"@types/*": ["types/*"]
-		},
+    // Base URL & Aliases
+    "baseUrl": "./src",
+    "paths": {
+      "@config/*": ["config/*"],
+      "@modules/*": ["modules/*"],
+      "@middlewares/*": ["middlewares/*"],
+      "@utils/*": ["utils/*"],
+      "@libs/*": ["libs/*"],
+      "@jobs/*": ["jobs/*"],
+      "@types/*": ["types/*"]
+    },
 
-		// Node
-		"types": ["node"]
-	},
-	"include": ["src"],
-	"exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+    // Node
+    "types": ["node"]
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
 }

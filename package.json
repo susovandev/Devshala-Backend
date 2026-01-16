@@ -5,9 +5,9 @@
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx watch src/main.ts",
+    "dev": "cross-env NODE_ENV=development tsx watch src/main.ts",
     "build": "tsc && tsc-alias",
-    "start": "node dist/main.js",
+    "start": "cross-env NODE_ENV=production node dist/main.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -30,6 +30,7 @@
     "@types/node": "^25.0.9",
     "@typescript-eslint/eslint-plugin": "^8.53.0",
     "@typescript-eslint/parser": "^8.53.0",
+    "cross-env": "^10.1.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
@@ -38,5 +39,9 @@
     "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "zod": "^4.3.5"
   }
 }

@@ -10,10 +10,14 @@ export const updateUserProfileSchema = z.object({
 
 export type IUpdateUserProfileRequestBody = z.infer<typeof updateUserProfileSchema>;
 
-export const updateUserPasswordSchema = z.object({
-  oldPassword: z.string(),
-  newPassword: z.string(),
-  confirmPassword: z.string(),
-});
+export const updateUserPasswordSchema = z
+  .object({
+    oldPassword: z.string({ message: 'Old password is required' }),
+    newPassword: z.string({ message: 'New password is required' }),
+    confirmPassword: z.string({ message: 'Confirm password is required' }),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+  });
 
 export type IUpdateUserPasswordRequestBody = z.infer<typeof updateUserPasswordSchema>;

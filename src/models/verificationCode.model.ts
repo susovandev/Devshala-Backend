@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
-import { type ObjectId, Schema, model, type Document } from 'mongoose';
+import mongoose from 'mongoose';
+import { Schema, model, type Document } from 'mongoose';
 
 export enum VerificationType {
   ACCOUNT_VERIFICATION = 'account_verification',
@@ -13,7 +14,7 @@ export enum VerificationStatus {
   USED = 'used',
 }
 export interface IVerificationCodeDocument extends Document {
-  userId: ObjectId;
+  userId: mongoose.Types.ObjectId;
   verificationCode: string;
   verificationCodeExpiration: Date;
   verificationType: VerificationType;

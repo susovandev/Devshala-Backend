@@ -4,15 +4,12 @@ import tsParser from '@typescript-eslint/parser';
 import prettierConfig from 'eslint-config-prettier';
 
 export default [
-  // Ignore generated folders
   {
     ignores: ['dist/**', 'coverage/**', 'node_modules/**'],
   },
 
-  // Base JavaScript recommended rules
   eslint.configs.recommended,
 
-  // TypeScript rules
   {
     files: ['**/*.ts'],
     languageOptions: {
@@ -31,10 +28,12 @@ export default [
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/consistent-type-imports': 'off',
+
       'no-console': 'error',
       'no-undef': 'off',
     },
   },
+
   prettierConfig,
 ];

@@ -29,3 +29,9 @@ export class ForbiddenError extends HttpError {
     super(StatusCodes.FORBIDDEN, message, details);
   }
 }
+
+export class NotFoundError extends HttpError {
+  constructor(message = 'Not Found', details?: unknown) {
+    super(StatusCodes.NOT_FOUND, message, details);
+  }
+}

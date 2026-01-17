@@ -41,3 +41,9 @@ export class ConflictError extends HttpError {
     super(StatusCodes.CONFLICT, message, details);
   }
 }
+
+export class TooManyRequestsError extends HttpError {
+  constructor(message = 'Too Many Requests', details?: unknown) {
+    super(StatusCodes.TOO_MANY_REQUESTS, message, details);
+  }
+}

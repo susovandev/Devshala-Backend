@@ -35,3 +35,9 @@ export class NotFoundError extends HttpError {
     super(StatusCodes.NOT_FOUND, message, details);
   }
 }
+
+export class ConflictError extends HttpError {
+  constructor(message = 'Conflict', details?: unknown) {
+    super(StatusCodes.CONFLICT, message, details);
+  }
+}

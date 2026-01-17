@@ -1,3 +1,4 @@
+import { StatusCodes } from 'http-status-codes';
 export class HttpError extends Error {
   status: 'error' | 'fail';
   statusCode: number;
@@ -7,5 +8,11 @@ export class HttpError extends Error {
     this.status = 'error';
     this.statusCode = statusCode;
     this.details = details;
+  }
+}
+
+export class BadRequestError extends HttpError {
+  constructor(message: string = 'Bad Request', details?: unknown) {
+    super(StatusCodes.BAD_REQUEST, message, details);
   }
 }

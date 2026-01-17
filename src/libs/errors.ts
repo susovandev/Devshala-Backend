@@ -47,3 +47,9 @@ export class TooManyRequestsError extends HttpError {
     super(StatusCodes.TOO_MANY_REQUESTS, message, details);
   }
 }
+
+export class InternalServerError extends HttpError {
+  constructor(message = 'Internal Server Error', details?: unknown) {
+    super(StatusCodes.INTERNAL_SERVER_ERROR, message, details);
+  }
+}

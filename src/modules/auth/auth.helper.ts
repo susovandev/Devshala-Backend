@@ -3,7 +3,11 @@ import { IUserDocument } from 'models/user.model.js';
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import { env } from '@config/env.js';
-import { ACCESS_TOKEN_TTL, REFRESH_TOKEN_TTL } from './auth.constants.js';
+import {
+  ACCESS_TOKEN_TTL,
+  FORGOT_PASSWORD_EXPIRY_MINUTES,
+  REFRESH_TOKEN_TTL,
+} from './auth.constants.js';
 import { randomUUID } from 'node:crypto';
 
 class AuthHelper {
@@ -64,9 +68,20 @@ class AuthHelper {
     };
   }
 
-  verifyAccessToken = (token: string): jwt.JwtPayload => {
+  verifyAccessToken(token: string): jwt.JwtPayload {
     return jwt.verify(token, env.ACCESS_TOKEN_SECRET_KEY) as jwt.JwtPayload;
-  };
+  }
+
+  generateResetPasswordSecret(user: IUserDocument): string {
+    return jwt.sign(
+      {
+        sub: user._id,
+        role: user.role,
+      },
+      env.FORGOT_PASSWORD_SECRET_KEY,
+      { expiresIn: FORGOT_PASSWORD_EXPIRY_MINUTES },
+    );
+  }
 }
 
 export default new AuthHelper();

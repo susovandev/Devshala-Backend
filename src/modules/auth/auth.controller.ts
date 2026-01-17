@@ -99,6 +99,24 @@ class AuthController {
     }
   }
 
+  async forgotPasswordHandler(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> {
+    try {
+      Logger.info(`Forgot password route called with data: ${JSON.stringify(req.body)}`);
+
+      await authService.forgotPasswordService(req.body.email);
+
+      return res
+        .status(StatusCodes.OK)
+        .json(new ApiResponse(StatusCodes.OK, 'Password reset email has been sent to your email'));
+    } catch (error) {
+      return next(error);
+    }
+  }
+
   async logoutHandler(
     req: AuthRequest,
     res: Response,

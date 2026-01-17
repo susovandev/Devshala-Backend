@@ -20,6 +20,8 @@ const BaseEnvSchema = z.object({
 
   ACCESS_TOKEN_SECRET_KEY: z.string().default('access-token-secret-key'),
   REFRESH_TOKEN_SECRET_KEY: z.string().default('refresh-token-secret-key'),
+
+  FORGOT_PASSWORD_SECRET_KEY: z.string().default('forgot-password-secret-key'),
 });
 
 const DatabaseEnvSchema = z.object({

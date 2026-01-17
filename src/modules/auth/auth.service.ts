@@ -18,11 +18,17 @@ import verificationCodeModel, {
   VerificationStatus,
   VerificationType,
 } from 'models/verificationCode.model.js';
-import { REFRESH_TOKEN_TTL, VERIFICATION_CODE_EXPIRATION_TIME } from './auth.constants.js';
+import {
+  FORGOT_PASSWORD_EXPIRY_MINUTES,
+  REFRESH_TOKEN_TTL,
+  VERIFICATION_CODE_EXPIRATION_TIME,
+} from './auth.constants.js';
 import { sendEmailService } from 'mail/index.js';
 import emailVerificationEmailTemplate from 'mail/templates/auth/emailVerification.template.js';
 import Logger from '@config/logger.js';
 import { LoginStatus } from 'models/login.model.js';
+import forgotPasswordEmailTemplate from 'mail/templates/auth/forgotPasswordEmail.template.js';
+import { env } from '@config/env.js';
 
 class AuthService {
   // TODO: Applying mongoose transaction, bullmq
@@ -94,7 +100,7 @@ class AuthService {
         htmlTemplate: emailVerificationEmailTemplate({
           USERNAME: user?.username,
           OTP: verificationCode.toString(),
-          EXPIRY_MINUTES: VERIFICATION_CODE_EXPIRATION_TIME / 60,
+          EXPIRY_MINUTES: VERIFICATION_CODE_EXPIRATION_TIME / 100000,
         }),
       });
       Logger.info('Email sent successfully');
@@ -340,6 +346,56 @@ class AuthService {
     }
 
     return { accessToken, refreshToken };
+  }
+
+  async forgotPasswordService(email: string) {
+    Logger.debug(`Forgot password for ${email}`);
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await userRepo.getUserByUsernameOrEmail({
+      email: normalizedEmail,
+    });
+    if (!user) {
+      Logger.error('User not found');
+      throw new NotFoundError('User not found');
+    }
+
+    // Check user email is verified or not
+    if (!user.isEmailVerified) {
+      Logger.error('Email not verified');
+      throw new UnauthorizedError('Email is not verified');
+    }
+
+    // Check user is blocked or disabled or deleted
+    if (user.isBlocked || user.isDisabled || user.isDeleted) {
+      Logger.error('User is blocked or disabled or deleted');
+      throw new UnauthorizedError('User is blocked or disabled or deleted');
+    }
+
+    // Generate reset password token
+    const resetPasswordToken = authHelper.generateResetPasswordSecret(user);
+    if (!resetPasswordToken) {
+      Logger.error('Generating reset password token failed');
+      throw new InternalServerError('Generating reset password token failed');
+    }
+
+    // Generate reset password url
+    const reset_url = `${env.CLIENT_PRODUCTION_URL}/auth/reset-passwords?token=${resetPasswordToken}`;
+
+    // Send email for forgot password
+    await sendEmailService({
+      recipient: user.email,
+      subject: 'Forgot Password',
+      htmlTemplate: forgotPasswordEmailTemplate({
+        username: user.username,
+        reset_url,
+        expiry_minutes: FORGOT_PASSWORD_EXPIRY_MINUTES / 100000,
+        year: new Date().getFullYear(),
+      }),
+    });
+
+    return;
   }
 
   async logoutService(params: IAuthUserShape) {

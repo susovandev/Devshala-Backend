@@ -169,6 +169,86 @@ class AuthService {
     return user;
   }
 
+  // TODO: Applying mongoose transaction, bullmq
+  async resendVerificationEmailService(email: string) {
+    Logger.debug('Resending verification email...');
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await userRepo.getUserByUsernameOrEmail({ email: normalizedEmail });
+    if (!user) {
+      Logger.error('User not found');
+      throw new NotFoundError('User not found for verification');
+    }
+
+    // Account status validation
+    if (user.isDeleted || user.isBlocked || user.isDisabled) {
+      throw new ConflictError('Account is not allowed to perform this action');
+    }
+
+    // Check if email is already verified
+    if (user.isEmailVerified) {
+      Logger.warn(`Resend OTP blocked: account already verified - ${normalizedEmail}`);
+      throw new ConflictError('Your account is already verified');
+    }
+
+    // Check if email verification code is pending
+    const verificationRecord = await authRepo.findVerificationCode({
+      userId: user._id.toString(),
+      verificationType: VerificationType.EMAIL_VERIFICATION,
+      verificationStatus: VerificationStatus.PENDING,
+    });
+    if (verificationRecord) {
+      Logger.warn(`Resend OTP blocked: email verification code is pending - ${normalizedEmail}`);
+      throw new ConflictError('Email verification code is pending');
+    }
+
+    // Generate Random OTP
+    const verificationCode = authHelper.generateRandomOtp();
+    if (!verificationCode) {
+      Logger.error('Generating random OTP failed');
+      throw new InternalServerError('Generating random OTP failed');
+    }
+
+    // Hash OTP
+    const verificationCodeHash = authHelper.hashVerificationCodeHelper(verificationCode.toString());
+    if (!verificationCodeHash) {
+      Logger.error('Hashing verification code failed');
+      throw new InternalServerError('Hashing verification code failed');
+    }
+
+    // Store OTP in DB
+    const newEmailVerificationCode = await authRepo.createVerificationCode({
+      userId: user._id.toString(),
+      verificationCode: verificationCodeHash,
+      verificationCodeExpiration: new Date(Date.now() + VERIFICATION_CODE_EXPIRATION_TIME),
+      verificationType: VerificationType.EMAIL_VERIFICATION,
+    });
+    if (!newEmailVerificationCode) {
+      Logger.error('Creating email verification code failed');
+      throw new InternalServerError('Creating email verification code failed');
+    }
+
+    await Promise.all([
+      authRepo.createVerificationCode({
+        userId: user._id.toString(),
+        verificationCode: verificationCodeHash,
+        verificationCodeExpiration: new Date(Date.now() + VERIFICATION_CODE_EXPIRATION_TIME),
+        verificationType: VerificationType.EMAIL_VERIFICATION,
+      }),
+      sendEmailService({
+        recipient: normalizedEmail,
+        subject: 'Email verification code',
+        htmlTemplate: emailVerificationEmailTemplate({
+          USERNAME: user?.username,
+          OTP: verificationCode.toString(),
+          EXPIRY_MINUTES: VERIFICATION_CODE_EXPIRATION_TIME / 60,
+        }),
+      }),
+    ]);
+    Logger.info('User signed up successfully');
+    return user;
+  }
+
   async loginService(params: ILoginRequestBody) {
     Logger.debug('Logging in...');
 

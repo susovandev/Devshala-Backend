@@ -47,6 +47,24 @@ class AuthController {
     }
   }
 
+  async resendVerificationEmailHandler(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> {
+    try {
+      Logger.info(`Resend verification email route called with data: ${JSON.stringify(req.body)}`);
+
+      await authService.resendVerificationEmailService(req.body.email);
+
+      return res
+        .status(StatusCodes.OK)
+        .json(new ApiResponse(StatusCodes.OK, 'Verification email has been sent'));
+    } catch (error) {
+      return next(error);
+    }
+  }
+
   async loginHandler(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       Logger.info(`Login route called with data: ${JSON.stringify(req.body)}`);

@@ -20,7 +20,7 @@ export interface IVerifyEmailRequestBody {
 
 export interface IGetVerificationCodeParams {
   userId: string;
-  verificationCodeHash: string;
+  verificationCodeHash?: string;
   verificationType: string;
   verificationStatus: string;
 }

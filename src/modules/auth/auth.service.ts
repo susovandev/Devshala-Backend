@@ -68,6 +68,13 @@ class AuthService {
       throw new InternalServerError('Creating user failed');
     }
 
+    // Store user information in userProfile DB
+    const userProfile = await userRepo.createUserProfile(user._id.toString());
+    if (!userProfile) {
+      Logger.error('Creating user profile failed');
+      throw new InternalServerError('Creating user profile failed');
+    }
+
     // Generate Random OTP
     const verificationCode = authHelper.generateRandomOtp();
     if (!verificationCode) {

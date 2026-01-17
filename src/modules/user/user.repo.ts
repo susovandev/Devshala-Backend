@@ -1,7 +1,34 @@
-import type { IGetUserParams, ICreateUserParams } from './user.types.js';
+import { type IGetUserParams, type ICreateUserParams, sendUserInformation } from './user.types.js';
 import userModel, { UserRole } from 'models/user.model.js';
+import userProfileModel from 'models/profile.model.js';
 import Logger from '@config/logger.js';
+import mongoose from 'mongoose';
+import { UnauthorizedError } from '@libs/errors.js';
 class UserRepo {
+  async getProfileByUserId(userId: string) {
+    Logger.debug('Getting user profile...');
+    const userProfile = await userModel.aggregate([
+      {
+        $match: { _id: new mongoose.Types.ObjectId(userId) },
+      },
+      {
+        $lookup: {
+          from: 'userprofiles',
+          localField: '_id',
+          foreignField: 'userId',
+          as: 'profile',
+        },
+      },
+      {
+        $unwind: '$profile',
+      },
+    ]);
+    if (!userProfile.length) {
+      throw new UnauthorizedError('User profile not found');
+    }
+
+    return sendUserInformation(userProfile[0]);
+  }
   async getByUserId(userId: string) {
     Logger.debug('Getting user by id...');
     const user = await userModel.findById(userId).select('-passwordHash');
@@ -34,6 +61,11 @@ class UserRepo {
     Logger.debug('Reset password...');
     const { userId, passwordHash } = params;
     return await userModel.findByIdAndUpdate(userId, { passwordHash }, { new: true });
+  }
+
+  async createUserProfile(userId: string) {
+    Logger.debug('Creating user profile...');
+    return await userProfileModel.create({ userId });
   }
 }
 

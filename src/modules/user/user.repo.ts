@@ -29,6 +29,12 @@ class UserRepo {
   async markEmailAsVerified(userId: string) {
     return await userModel.findByIdAndUpdate(userId, { isEmailVerified: true }, { new: true });
   }
+
+  async resetPassword(params: { userId: string; passwordHash: string }) {
+    Logger.debug('Reset password...');
+    const { userId, passwordHash } = params;
+    return await userModel.findByIdAndUpdate(userId, { passwordHash }, { new: true });
+  }
 }
 
 export default new UserRepo();

@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { IUserDocument } from 'models/user.model.js';
+import { IUserDocument, UserRole } from 'models/user.model.js';
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import { env } from '@config/env.js';
@@ -8,7 +8,12 @@ import {
   FORGOT_PASSWORD_EXPIRY_MINUTES,
   REFRESH_TOKEN_TTL,
 } from './auth.constants.js';
-import { randomUUID } from 'node:crypto';
+import Logger from '@config/logger.js';
+
+interface IResetPasswordJwtPayload {
+  sub: string;
+  role: UserRole;
+}
 
 class AuthHelper {
   async hashPasswordHelper(password: string): Promise<string | null> {
@@ -36,28 +41,24 @@ class AuthHelper {
   }
 
   signAccessToken(user: IUserDocument): string | null {
-    const accessToken = jwt.sign(
-      {
-        sub: user._id.toString(),
-        role: user.role,
-        jti: randomUUID(),
-      },
-      env.ACCESS_TOKEN_SECRET_KEY,
-      { expiresIn: ACCESS_TOKEN_TTL } as jwt.SignOptions,
-    );
+    const payload: IResetPasswordJwtPayload = {
+      sub: user._id.toString(),
+      role: user.role,
+    };
+    const accessToken = jwt.sign(payload, env.ACCESS_TOKEN_SECRET_KEY, {
+      expiresIn: ACCESS_TOKEN_TTL,
+    } as jwt.SignOptions);
     return accessToken;
   }
 
   signRefreshToken(user: IUserDocument): string | null {
-    const refreshToken = jwt.sign(
-      {
-        sub: user._id.toString(),
-        role: user.role,
-        jti: randomUUID(),
-      },
-      env.REFRESH_TOKEN_SECRET_KEY,
-      { expiresIn: REFRESH_TOKEN_TTL } as jwt.SignOptions,
-    );
+    const payload: IResetPasswordJwtPayload = {
+      sub: user._id.toString(),
+      role: user.role,
+    };
+    const refreshToken = jwt.sign(payload, env.REFRESH_TOKEN_SECRET_KEY, {
+      expiresIn: REFRESH_TOKEN_TTL,
+    } as jwt.SignOptions);
     return refreshToken;
   }
 
@@ -73,14 +74,36 @@ class AuthHelper {
   }
 
   generateResetPasswordSecret(user: IUserDocument): string {
-    return jwt.sign(
-      {
-        sub: user._id,
-        role: user.role,
-      },
-      env.FORGOT_PASSWORD_SECRET_KEY,
-      { expiresIn: FORGOT_PASSWORD_EXPIRY_MINUTES },
-    );
+    const payload: IResetPasswordJwtPayload = {
+      sub: user._id.toString(),
+      role: user.role,
+    };
+
+    return jwt.sign(payload, env.FORGOT_PASSWORD_SECRET_KEY, {
+      expiresIn: FORGOT_PASSWORD_EXPIRY_MINUTES,
+    });
+  }
+
+  verifyResetPasswordSecret(token: string): IResetPasswordJwtPayload | null {
+    Logger.debug('Verifying reset password token...');
+
+    if (!token) return null;
+
+    try {
+      const decoded = jwt.verify(token, env.FORGOT_PASSWORD_SECRET_KEY) as jwt.JwtPayload;
+
+      if (!decoded) {
+        return null;
+      }
+
+      return {
+        sub: decoded.sub as string,
+        role: decoded.role as UserRole,
+      };
+    } catch (error) {
+      Logger.error('Reset password token verification failed', error);
+      return null;
+    }
   }
 }
 

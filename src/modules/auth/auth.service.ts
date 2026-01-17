@@ -2,10 +2,12 @@ import userRepo from '@modules/user/user.repo.js';
 import type {
   IAuthUserShape,
   ILoginRequestBody,
+  IResetPasswordRequestBody,
   ISignupRequestBody,
   IVerifyEmailRequestBody,
 } from './auth.types.js';
 import {
+  BadRequestError,
   ConflictError,
   InternalServerError,
   NotFoundError,
@@ -353,6 +355,7 @@ class AuthService {
 
     const normalizedEmail = email.trim().toLowerCase();
 
+    // Find user
     const user = await userRepo.getUserByUsernameOrEmail({
       email: normalizedEmail,
     });
@@ -396,6 +399,50 @@ class AuthService {
     });
 
     return;
+  }
+
+  async resetPasswordService(params: IResetPasswordRequestBody) {
+    Logger.debug('Reset password ...');
+
+    const { token, password, confirmPassword } = params;
+
+    // Verify reset password token
+    const tokenPayload = authHelper.verifyResetPasswordSecret(token);
+    if (!tokenPayload?.sub) {
+      Logger.error('Reset password token is invalid or expired');
+      throw new UnauthorizedError('Reset password token is invalid or expired');
+    }
+
+    // Check password match
+    if (password !== confirmPassword) {
+      Logger.error('Password and confirm password are not same');
+      throw new BadRequestError('Password and confirm password are not same');
+    }
+
+    // Hash password
+    const passwordHash = await authHelper.hashPasswordHelper(password);
+    if (!passwordHash) {
+      Logger.error('Hashing password failed');
+      throw new InternalServerError('Hashing password failed');
+    }
+
+    // Update user password
+    const updated = await userRepo.resetPassword({
+      userId: tokenPayload.sub.toString(),
+      passwordHash,
+    });
+
+    if (!updated) {
+      Logger.error('Updating user password failed');
+      throw new InternalServerError('Updating user password failed');
+    }
+
+    // Delete refresh token
+    await authRepo.deleteRefreshTokenRecord({
+      userId: tokenPayload.sub.toString(),
+    });
+
+    Logger.info('Password reset successfully');
   }
 
   async logoutService(params: IAuthUserShape) {

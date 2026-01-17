@@ -117,6 +117,28 @@ class AuthController {
     }
   }
 
+  async resetPasswordHandler(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> {
+    try {
+      Logger.info(`Reset password route called with data: ${JSON.stringify(req.body)}`);
+
+      await authService.resetPasswordService({
+        token: req.query.token as string,
+        password: req.body.password,
+        confirmPassword: req.body.confirmPassword,
+      });
+
+      return res
+        .status(StatusCodes.OK)
+        .json(new ApiResponse(StatusCodes.OK, 'Password has been reset successfully'));
+    } catch (error) {
+      return next(error);
+    }
+  }
+
   async logoutHandler(
     req: AuthRequest,
     res: Response,

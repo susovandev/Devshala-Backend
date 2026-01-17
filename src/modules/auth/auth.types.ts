@@ -58,3 +58,9 @@ export interface AuthRequest<ReqBody = unknown, ReqParams = unknown, ReqQuery = 
   extends Request<ReqParams, any, ReqBody, ReqQuery> {
   user?: IAuthUserShape;
 }
+
+export interface IResetPasswordRequestBody {
+  token: string;
+  password: string;
+  confirmPassword: string;
+}

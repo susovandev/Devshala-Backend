@@ -23,6 +23,27 @@ class AuthController {
       return next(error);
     }
   }
+
+  async verifyEmailHandler(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> {
+    try {
+      Logger.info(`Verify email route called with data: ${JSON.stringify(req.body)}`);
+
+      await authService.verifyEmailService({
+        userId: req.query.userId as string,
+        verificationCode: req.body.verificationCode,
+      });
+
+      return res
+        .status(StatusCodes.OK)
+        .json(new ApiResponse(StatusCodes.OK, 'Email has been verified'));
+    } catch (error) {
+      return next(error);
+    }
+  }
 }
 
 export default new AuthController();

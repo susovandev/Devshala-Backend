@@ -38,6 +38,6 @@ const verificationCodeSchema = new Schema<IVerificationCodeDocument>(
   { timestamps: true },
 );
 
-verificationCodeSchema.index({ userId: 1 }, { unique: true });
+verificationCodeSchema.index({ userId: 1, verificationType: 1 }, { unique: true });
 
 export default model<IVerificationCodeDocument>('VerificationCode', verificationCodeSchema);

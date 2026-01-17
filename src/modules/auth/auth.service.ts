@@ -1,10 +1,13 @@
 import userRepo from '@modules/user/user.repo.js';
-import type { ISignupRequestBody } from './auth.types.js';
-import { ConflictError, InternalServerError } from '@libs/errors.js';
+import type { ISignupRequestBody, IVerifyEmailRequestBody } from './auth.types.js';
+import { ConflictError, InternalServerError, NotFoundError } from '@libs/errors.js';
 import authHelper from './auth.helper.js';
 import type { IUserDocument } from 'models/user.model.js';
 import authRepo from './auth.repo.js';
-import { VerificationType } from 'models/verificationCode.model.js';
+import verificationCodeModel, {
+  VerificationStatus,
+  VerificationType,
+} from 'models/verificationCode.model.js';
 import { VERIFICATION_CODE_EXPIRATION_TIME } from './auth.constants.js';
 import { sendEmailService } from 'mail/index.js';
 import emailVerificationEmailTemplate from 'mail/templates/auth/emailVerification.template.js';
@@ -53,10 +56,17 @@ class AuthService {
       throw new InternalServerError('Generating random OTP failed');
     }
 
+    // Hash OTP
+    const verificationCodeHash = authHelper.hashVerificationCodeHelper(verificationCode.toString());
+    if (!verificationCodeHash) {
+      Logger.error('Hashing verification code failed');
+      throw new InternalServerError('Hashing verification code failed');
+    }
+
     // Store OTP in DB
     const newEmailVerificationCode = await authRepo.createVerificationCode({
       userId: user._id.toString(),
-      verificationCode: verificationCode.toString(),
+      verificationCode: verificationCodeHash,
       verificationCodeExpiration: new Date(Date.now() + VERIFICATION_CODE_EXPIRATION_TIME),
       verificationType: VerificationType.EMAIL_VERIFICATION,
     });
@@ -72,7 +82,7 @@ class AuthService {
         subject: 'Email Verification',
         htmlTemplate: emailVerificationEmailTemplate({
           USERNAME: user?.username,
-          OTP: newEmailVerificationCode?.verificationCode,
+          OTP: verificationCode.toString(),
           EXPIRY_MINUTES: VERIFICATION_CODE_EXPIRATION_TIME / 60,
         }),
       });
@@ -82,6 +92,68 @@ class AuthService {
     }
 
     Logger.info('User signed up successfully');
+    return user;
+  }
+
+  async verifyEmailService(params: IVerifyEmailRequestBody) {
+    Logger.debug('Verifying email...');
+    const { userId, verificationCode } = params;
+
+    // Check user is already registered or nor by userId
+    const user = await userRepo.getByUserId(userId);
+    if (!user) {
+      Logger.error('User not found');
+      throw new NotFoundError('User not found for verification');
+    }
+
+    // Account state validation
+    if (user.isDeleted || user.isBlocked || user.isDisabled) {
+      throw new ConflictError('Account is not allowed to perform this action');
+    }
+
+    // Check if email is already verified
+    if (user.isEmailVerified) {
+      Logger.error('Email already verified');
+      throw new ConflictError('Email already verified');
+    }
+
+    // Hash incoming code
+    const verificationCodeHash = authHelper.hashVerificationCodeHelper(verificationCode);
+    if (!verificationCodeHash) {
+      Logger.error('Hashing verification code failed');
+      throw new InternalServerError('Hashing verification code failed');
+    }
+
+    // Check if email verification code is valid
+    const verificationRecord = await authRepo.findVerificationCode({
+      userId,
+      verificationCodeHash,
+      verificationType: VerificationType.EMAIL_VERIFICATION,
+      verificationStatus: VerificationStatus.PENDING,
+    });
+    if (!verificationRecord) {
+      Logger.error('Email verification code not found');
+      throw new ConflictError('Invalid Email verification code or expired');
+    }
+
+    // Check is email verification code expired
+    if (verificationRecord.verificationCodeExpiration < new Date()) {
+      Logger.error('Email verification code expired');
+      verificationRecord.verificationStatus = VerificationStatus.EXPIRED;
+      await verificationRecord.save();
+      throw new ConflictError('Email verification code expired');
+    }
+
+    //  Atomic update
+    await Promise.all([
+      userRepo.markEmailAsVerified(userId),
+      verificationCodeModel.updateOne(
+        { _id: verificationRecord._id },
+        { $set: { verificationStatus: VerificationStatus.USED } },
+      ),
+    ]);
+
+    Logger.info(`Email verified successfully for user: ${userId}`);
     return user;
   }
 }

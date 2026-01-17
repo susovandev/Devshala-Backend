@@ -10,3 +10,15 @@ export interface ICreateVerificationCodeParams {
   verificationCodeExpiration: Date;
   verificationType: string;
 }
+
+export interface IVerifyEmailRequestBody {
+  userId: string;
+  verificationCode: string;
+}
+
+export interface IGetVerificationCodeParams {
+  userId: string;
+  verificationCodeHash: string;
+  verificationType: string;
+  verificationStatus: string;
+}

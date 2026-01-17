@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 
 class AuthHelper {
   async hashPasswordHelper(password: string): Promise<string | null> {
@@ -10,6 +11,12 @@ class AuthHelper {
 
   generateRandomOtp(): number {
     return Math.floor(100000 + Math.random() * 900000);
+  }
+
+  hashVerificationCodeHelper(verificationCode: string): string | null {
+    const verificationCodeHash = crypto.createHash('sha256').update(verificationCode).digest('hex');
+    if (!verificationCodeHash) return null;
+    return verificationCodeHash;
   }
 }
 

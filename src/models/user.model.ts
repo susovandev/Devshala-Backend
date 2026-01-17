@@ -23,8 +23,8 @@ export interface IUserDocument extends Document {
 
 const userSchema = new Schema<IUserDocument>(
   {
-    username: { type: String, required: true, unique: true },
-    email: { type: String, required: true, unique: true, lowercase: true },
+    username: { type: String, required: true },
+    email: { type: String, required: true, lowercase: true },
     passwordHash: { type: String, required: true, select: false },
     role: { type: String, required: true, enum: Object.values(UserRole), default: UserRole.USER },
     isEmailVerified: { type: Boolean, required: true, default: false },

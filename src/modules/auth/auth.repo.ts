@@ -8,7 +8,7 @@ import type {
   IGetVerificationCodeParams,
 } from './auth.types.js';
 import loginModel from 'models/login.model.js';
-import refreshTokenModel from 'models/refreshToken.model.js';
+import refreshTokenModel, { IRefreshTokenDocument } from 'models/refreshToken.model.js';
 import Logger from '@config/logger.js';
 
 class AuthRepo {
@@ -40,6 +40,13 @@ class AuthRepo {
   async createRefreshTokenRecord(params: ICreateRefreshTokenRecordParam) {
     Logger.debug('Creating refresh token record...');
     return await refreshTokenModel.create(params);
+  }
+
+  async deleteRefreshTokenRecord(params: {
+    userId: string;
+  }): Promise<IRefreshTokenDocument | null> {
+    Logger.debug('Deleting refresh token record...');
+    return await refreshTokenModel.findOneAndDelete({ userId: params.userId });
   }
 }
 

@@ -63,6 +63,10 @@ class AuthHelper {
       refreshToken: this.signRefreshToken(user),
     };
   }
+
+  verifyAccessToken = (token: string): jwt.JwtPayload => {
+    return jwt.verify(token, env.ACCESS_TOKEN_SECRET_KEY) as jwt.JwtPayload;
+  };
 }
 
 export default new AuthHelper();

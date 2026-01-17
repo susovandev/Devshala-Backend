@@ -1,5 +1,6 @@
 import userRepo from '@modules/user/user.repo.js';
 import type {
+  IAuthUserShape,
   ILoginRequestBody,
   ISignupRequestBody,
   IVerifyEmailRequestBody,
@@ -339,6 +340,21 @@ class AuthService {
     }
 
     return { accessToken, refreshToken };
+  }
+
+  async logoutService(params: IAuthUserShape) {
+    Logger.debug('Logging out...');
+    const { userId } = params;
+
+    // Delete refresh token
+    const deleteRefreshTokenRecord = await authRepo.deleteRefreshTokenRecord({ userId });
+    if (!deleteRefreshTokenRecord) {
+      Logger.error('Deleting refresh token record failed');
+      throw new UnauthorizedError('Deleting refresh token record failed');
+    }
+
+    Logger.info('Logged out successfully');
+    return;
   }
 }
 

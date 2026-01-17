@@ -5,6 +5,7 @@ import { StatusCodes } from 'http-status-codes';
 import { ApiResponse } from '@libs/apiResponse.js';
 import { env } from '@config/env.js';
 import { ACCESS_TOKEN_TTL, REFRESH_TOKEN_TTL } from './auth.constants.js';
+import { AuthRequest } from './auth.types.js';
 
 class AuthController {
   async signupHandler(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
@@ -93,6 +94,25 @@ class AuthController {
         })
         .status(StatusCodes.OK)
         .json(new ApiResponse(StatusCodes.OK, 'Logged in successfully'));
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  async logoutHandler(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<Response | void> {
+    try {
+      Logger.info(`Logout route called with data: ${JSON.stringify(req.body)}`);
+      await authService.logoutService(req.user!);
+
+      return res
+        .clearCookie('accessToken')
+        .clearCookie('refreshToken')
+        .status(StatusCodes.OK)
+        .json(new ApiResponse(StatusCodes.OK, 'Logged out successfully'));
     } catch (error) {
       return next(error);
     }

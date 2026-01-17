@@ -53,3 +53,9 @@ export class InternalServerError extends HttpError {
     super(StatusCodes.INTERNAL_SERVER_ERROR, message, details);
   }
 }
+
+export class ServiceUnavailableError extends HttpError {
+  constructor(message = 'Service Unavailable', details?: unknown) {
+    super(StatusCodes.SERVICE_UNAVAILABLE, message, details);
+  }
+}

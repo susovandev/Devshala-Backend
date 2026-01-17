@@ -1,10 +1,11 @@
 import Logger from '@config/logger.js';
 import profileRepo from './profile.repo.js';
-import { NotFoundError } from '@libs/errors.js';
-import { IUpdateUserProfileParams } from './user.types.js';
+import { BadRequestError, ConflictError, NotFoundError } from '@libs/errors.js';
+import { IUpdateUserProfileParams, IUserPasswordUpdateParams } from './user.types.js';
 import { deleteFromCloudinary, uploadOnCloudinary } from '@libs/cloudinary.js';
 import fs from 'node:fs/promises';
 import userRepo from './user.repo.js';
+import authHelper from '@modules/auth/auth.helper.js';
 
 class UserService {
   async getUserProfileService(userId: string) {
@@ -20,7 +21,7 @@ class UserService {
   async updateUserProfileService(params: IUpdateUserProfileParams) {
     Logger.debug('Updating user profile...');
 
-    const { userId, username, avatarLocalFilePath, bio, socialLinks } = params;
+    const { userId, username, avatarLocalFilePath, bio, github, linkedin, twitter } = params;
 
     const profile = await profileRepo.getProfileByUserId(userId);
     if (!profile) {
@@ -33,7 +34,11 @@ class UserService {
       avatarUrl: { url: string; publicId: string };
     }> = {
       bio,
-      socialLinks,
+      socialLinks: {
+        github,
+        linkedin,
+        twitter,
+      },
     };
 
     // if (bio !== undefined) updateFields.bio = bio;
@@ -62,9 +67,36 @@ class UserService {
     if (username) {
       await userRepo.updateUserName(userId, username);
     }
-
     // Update profile
     await profileRepo.updateUserProfile(userId, updateFields);
+
+    return;
+  }
+
+  async updateUserPasswordService(params: IUserPasswordUpdateParams) {
+    Logger.debug('Updating user password...');
+    const { userId, oldPassword, newPassword, confirmPassword } = params;
+
+    const user = await userRepo.getByUserId(userId);
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    if (newPassword !== confirmPassword) {
+      throw new BadRequestError('Passwords do not match');
+    }
+
+    const isPasswordMatch = await authHelper.comparePasswordHelper(oldPassword, user.passwordHash);
+    if (!isPasswordMatch) {
+      throw new ConflictError('Old password is incorrect');
+    }
+
+    const newPasswordHash = await authHelper.hashPasswordHelper(newPassword);
+    if (!newPasswordHash) {
+      throw new Error('Hashing password failed');
+    }
+
+    await userRepo.updatePassword({ userId, newPassword: newPasswordHash });
 
     return;
   }

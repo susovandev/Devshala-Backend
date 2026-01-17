@@ -64,9 +64,14 @@ export interface IUpdateUserProfileParams {
   username?: string;
   avatarLocalFilePath?: string;
   bio?: string;
-  socialLinks?: {
-    github?: string;
-    linkedin?: string;
-    twitter?: string;
-  };
+  github?: string;
+  linkedin?: string;
+  twitter?: string;
+}
+
+export interface IUserPasswordUpdateParams {
+  userId: string;
+  oldPassword: string;
+  newPassword: string;
+  confirmPassword: string;
 }

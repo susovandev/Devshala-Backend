@@ -1,4 +1,9 @@
-import { type IGetUserParams, type ICreateUserParams, sendUserInformation } from './user.types.js';
+import {
+  type IGetUserParams,
+  type ICreateUserParams,
+  sendUserInformation,
+  IUserPasswordUpdateParams,
+} from './user.types.js';
 import userModel, { UserRole } from 'models/user.model.js';
 import Logger from '@config/logger.js';
 import mongoose from 'mongoose';
@@ -30,7 +35,7 @@ class UserRepo {
   }
   async getByUserId(userId: string) {
     Logger.debug('Getting user by id...');
-    const user = await userModel.findById(userId).select('-passwordHash');
+    const user = await userModel.findById(userId).select('+passwordHash');
     return user;
   }
   async getUserByUsernameOrEmail(params: Partial<IGetUserParams>) {
@@ -66,6 +71,15 @@ class UserRepo {
     Logger.debug('Reset password...');
     const { userId, passwordHash } = params;
     return await userModel.findByIdAndUpdate(userId, { passwordHash }, { new: true });
+  }
+
+  async updatePassword(params: Partial<IUserPasswordUpdateParams>) {
+    Logger.debug('Updating user password...');
+    const { userId, newPassword } = params;
+    return await userModel.updateOne(
+      { _id: userId, isDeleted: false },
+      { $set: { passwordHash: newPassword } },
+    );
   }
 }
 

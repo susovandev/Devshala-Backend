@@ -12,5 +12,6 @@ router.put(
   upload.single('avatar'),
   userController.updateUserProfileHandler,
 );
+router.put('/profile/update-password', AuthGuard, userController.updateUserPasswordHandler);
 
 export default router;

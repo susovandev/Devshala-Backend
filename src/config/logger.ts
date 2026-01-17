@@ -4,7 +4,7 @@ import { env } from './env.js';
 const isProd = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
 
-const level = isTest ? 'error' : isProd ? 'warn' : 'info';
+const level = isTest ? 'error' : isProd ? 'warn' : 'http';
 
 const levels = {
   error: 0,
@@ -32,18 +32,26 @@ const format = winston.format.combine(
   winston.format.printf((info) => {
     const msg =
       typeof info.message === 'object' ? JSON.stringify(info.message, null, 2) : info.message;
-    return `${info['timestamp']} ${info.level}: ${msg}`;
+    return `${info.timestamp} ${info.level}: ${msg}`;
   }),
 );
 
 const transports = [
-  new winston.transports.Console({ level, silent: isTest }),
-  new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-  new winston.transports.File({ filename: 'logs/all.log' }),
+  new winston.transports.Console({
+    level,
+    silent: isTest,
+  }),
+  new winston.transports.File({
+    filename: 'logs/error.log',
+    level: 'error',
+  }),
+  new winston.transports.File({
+    filename: 'logs/all.log',
+  }),
 ];
 
 const Logger = winston.createLogger({
-  level: level,
+  level,
   levels,
   format,
   defaultMeta: {

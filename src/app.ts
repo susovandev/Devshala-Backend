@@ -4,9 +4,13 @@ import configureRoutes from './routes.js';
 import { REQUEST_BODY_LIMIT } from 'constants/index.js';
 import { notFoundHandler } from '@middlewares/notfound.middleware.js';
 import { errorHandler } from '@middlewares/error.middleware.js';
+import morganMiddleware from '@config/morgan.js';
 
 export default function initializeApp() {
   const app: Application = express();
+
+  // Morgan middleware
+  app.use(morganMiddleware);
 
   // Body-parser middlewares
   app.use(express.json({ limit: REQUEST_BODY_LIMIT }));

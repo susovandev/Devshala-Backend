@@ -16,6 +16,9 @@ export default function initializeApp() {
   app.use(express.json({ limit: REQUEST_BODY_LIMIT }));
   app.use(express.urlencoded({ extended: true, limit: REQUEST_BODY_LIMIT }));
 
+  // set trust proxy
+  app.set('trust proxy', true);
+
   // Routes
   configureRoutes(app);
 

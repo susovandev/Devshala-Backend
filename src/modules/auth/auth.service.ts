@@ -1,6 +1,15 @@
 import userRepo from '@modules/user/user.repo.js';
-import type { ISignupRequestBody, IVerifyEmailRequestBody } from './auth.types.js';
-import { ConflictError, InternalServerError, NotFoundError } from '@libs/errors.js';
+import type {
+  ILoginRequestBody,
+  ISignupRequestBody,
+  IVerifyEmailRequestBody,
+} from './auth.types.js';
+import {
+  ConflictError,
+  InternalServerError,
+  NotFoundError,
+  UnauthorizedError,
+} from '@libs/errors.js';
 import authHelper from './auth.helper.js';
 import type { IUserDocument } from 'models/user.model.js';
 import authRepo from './auth.repo.js';
@@ -8,10 +17,11 @@ import verificationCodeModel, {
   VerificationStatus,
   VerificationType,
 } from 'models/verificationCode.model.js';
-import { VERIFICATION_CODE_EXPIRATION_TIME } from './auth.constants.js';
+import { REFRESH_TOKEN_TTL, VERIFICATION_CODE_EXPIRATION_TIME } from './auth.constants.js';
 import { sendEmailService } from 'mail/index.js';
 import emailVerificationEmailTemplate from 'mail/templates/auth/emailVerification.template.js';
 import Logger from '@config/logger.js';
+import { LoginStatus } from 'models/login.model.js';
 
 class AuthService {
   // TODO: Applying mongoose transaction, bullmq
@@ -95,6 +105,8 @@ class AuthService {
     return user;
   }
 
+  // TODO: send email for account verified message
+  // TODO: Use corn job for verification status pending to expired after 24 hours
   async verifyEmailService(params: IVerifyEmailRequestBody) {
     Logger.debug('Verifying email...');
     const { userId, verificationCode } = params;
@@ -106,7 +118,7 @@ class AuthService {
       throw new NotFoundError('User not found for verification');
     }
 
-    // Account state validation
+    // Account status validation
     if (user.isDeleted || user.isBlocked || user.isDisabled) {
       throw new ConflictError('Account is not allowed to perform this action');
     }
@@ -155,6 +167,98 @@ class AuthService {
 
     Logger.info(`Email verified successfully for user: ${userId}`);
     return user;
+  }
+
+  async loginService(params: ILoginRequestBody) {
+    Logger.debug('Logging in...');
+
+    const { email, password, ip, userAgent } = params;
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // If user exits in DB
+    const user = await userRepo.getUserByUsernameOrEmail({
+      email: normalizedEmail,
+    });
+    if (!user) {
+      Logger.error('User not found');
+      await authRepo.createLoginRecord({
+        lastLoginIp: ip,
+        lastLoginUserAgent: userAgent,
+        lastLoginStatus: LoginStatus.FAILED,
+      });
+      throw new UnauthorizedError('Incorrect email or password');
+    }
+
+    // Check user email is verified or not
+    if (!user.isEmailVerified) {
+      Logger.error('Email not verified');
+      await authRepo.createLoginRecord({
+        userId: user?._id.toString(),
+        lastLoginIp: ip,
+        lastLoginUserAgent: userAgent,
+        lastLoginStatus: LoginStatus.FAILED,
+      });
+      throw new UnauthorizedError('Email is not verified');
+    }
+
+    // If user is blocked or disabled or deleted
+    if (user.isBlocked || user.isDisabled || user.isDeleted) {
+      Logger.error('User is blocked or disabled or deleted');
+      await authRepo.createLoginRecord({
+        userId: user?._id.toString(),
+        lastLoginIp: ip,
+        lastLoginUserAgent: userAgent,
+        lastLoginStatus: LoginStatus.FAILED,
+      });
+      throw new UnauthorizedError('User is blocked or disabled or deleted');
+    }
+
+    // Compare password
+    const isPasswordCorrect = await authHelper.comparePasswordHelper(password, user.passwordHash);
+    if (!isPasswordCorrect) {
+      Logger.error('Incorrect password');
+      await authRepo.createLoginRecord({
+        userId: user?._id.toString(),
+        lastLoginIp: ip,
+        lastLoginUserAgent: userAgent,
+        lastLoginStatus: LoginStatus.FAILED,
+      });
+      throw new UnauthorizedError('Incorrect email or password');
+    }
+
+    // Store user ip and user agent in login db
+    const storeLoggedInRecord = await authRepo.createLoginRecord({
+      userId: user._id.toString(),
+      lastLoginIp: ip,
+      lastLoginUserAgent: userAgent,
+      lastLoginStatus: LoginStatus.SUCCESS,
+    });
+    if (!storeLoggedInRecord) {
+      Logger.error('Storing login record failed');
+      throw new InternalServerError('Storing login record failed');
+    }
+
+    // Generate tokens
+    const { accessToken, refreshToken } = authHelper.signAccessTokenAndRefreshToken(user);
+    if (!accessToken || !refreshToken) {
+      Logger.error('Generating access token or refresh token failed');
+      throw new InternalServerError('Generating access token or refresh token failed');
+    }
+
+    // Store refreshToken in db
+    const storeRefreshTokenRecord = await authRepo.createRefreshTokenRecord({
+      userId: user._id.toString(),
+      tokenHash: refreshToken,
+      expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL),
+      ip,
+      userAgent,
+    });
+    if (!storeRefreshTokenRecord) {
+      Logger.error('Storing refresh token record failed');
+      throw new InternalServerError('Storing refresh token record failed');
+    }
+
+    return { accessToken, refreshToken };
   }
 }
 

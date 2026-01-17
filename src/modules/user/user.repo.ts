@@ -7,14 +7,14 @@ class UserRepo {
     const user = await userModel.findById(userId).select('-passwordHash');
     return user;
   }
-  async getUserByUsernameOrEmail(params: IGetUserParams) {
+  async getUserByUsernameOrEmail(params: Partial<IGetUserParams>) {
     Logger.debug('Getting user by username or email...');
     const { username, email } = params;
     const user = await userModel
       .findOne({
         $or: [{ username }, { email }],
       })
-      .select('-passwordHash');
+      .select('+passwordHash');
     return user;
   }
   async createUser(params: ICreateUserParams) {

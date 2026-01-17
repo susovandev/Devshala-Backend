@@ -3,6 +3,8 @@ import type { Request, Response, NextFunction } from 'express';
 import authService from './auth.service.js';
 import { StatusCodes } from 'http-status-codes';
 import { ApiResponse } from '@libs/apiResponse.js';
+import { env } from '@config/env.js';
+import { ACCESS_TOKEN_TTL, REFRESH_TOKEN_TTL } from './auth.constants.js';
 
 class AuthController {
   async signupHandler(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
@@ -40,6 +42,39 @@ class AuthController {
       return res
         .status(StatusCodes.OK)
         .json(new ApiResponse(StatusCodes.OK, 'Email has been verified'));
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  async loginHandler(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+    try {
+      Logger.info(`Login route called with data: ${JSON.stringify(req.body)}`);
+
+      const ip = req.ip;
+      const userAgent = req.headers['user-agent'] || 'unknown';
+
+      const { accessToken, refreshToken } = await authService.loginService({
+        ...req.body,
+        ip,
+        userAgent,
+      });
+
+      return res
+        .cookie('accessToken', accessToken, {
+          httpOnly: true,
+          secure: env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: ACCESS_TOKEN_TTL,
+        })
+        .cookie('refreshToken', refreshToken, {
+          httpOnly: true,
+          secure: env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: REFRESH_TOKEN_TTL,
+        })
+        .status(StatusCodes.OK)
+        .json(new ApiResponse(StatusCodes.OK, 'Logged in successfully'));
     } catch (error) {
       return next(error);
     }

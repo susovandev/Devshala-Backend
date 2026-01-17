@@ -39,5 +39,6 @@ const verificationCodeSchema = new Schema<IVerificationCodeDocument>(
 );
 
 verificationCodeSchema.index({ userId: 1, verificationType: 1 }, { unique: true });
+verificationCodeSchema.index({ verificationCodeExpiration: 1 }, { expireAfterSeconds: 0 });
 
 export default model<IVerificationCodeDocument>('VerificationCode', verificationCodeSchema);

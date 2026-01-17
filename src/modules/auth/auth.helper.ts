@@ -1,5 +1,10 @@
 import bcrypt from 'bcryptjs';
+import { IUserDocument } from 'models/user.model.js';
 import crypto from 'node:crypto';
+import jwt from 'jsonwebtoken';
+import { env } from '@config/env.js';
+import { ACCESS_TOKEN_TTL, REFRESH_TOKEN_TTL } from './auth.constants.js';
+import { randomUUID } from 'node:crypto';
 
 class AuthHelper {
   async hashPasswordHelper(password: string): Promise<string | null> {
@@ -7,6 +12,13 @@ class AuthHelper {
     const hashedPassword = await bcrypt.hash(password, genSalt);
     if (!hashedPassword) return null;
     return hashedPassword;
+  }
+
+  async comparePasswordHelper(password: string, hashedPassword: string): Promise<boolean> {
+    if (!hashedPassword) return false;
+    const isPasswordCorrect = await bcrypt.compare(password, hashedPassword);
+    if (!isPasswordCorrect) return false;
+    return isPasswordCorrect;
   }
 
   generateRandomOtp(): number {
@@ -17,6 +29,39 @@ class AuthHelper {
     const verificationCodeHash = crypto.createHash('sha256').update(verificationCode).digest('hex');
     if (!verificationCodeHash) return null;
     return verificationCodeHash;
+  }
+
+  signAccessToken(user: IUserDocument): string | null {
+    const accessToken = jwt.sign(
+      {
+        sub: user._id.toString(),
+        role: user.role,
+        jti: randomUUID(),
+      },
+      env.ACCESS_TOKEN_SECRET_KEY,
+      { expiresIn: ACCESS_TOKEN_TTL } as jwt.SignOptions,
+    );
+    return accessToken;
+  }
+
+  signRefreshToken(user: IUserDocument): string | null {
+    const refreshToken = jwt.sign(
+      {
+        sub: user._id.toString(),
+        role: user.role,
+        jti: randomUUID(),
+      },
+      env.REFRESH_TOKEN_SECRET_KEY,
+      { expiresIn: REFRESH_TOKEN_TTL } as jwt.SignOptions,
+    );
+    return refreshToken;
+  }
+
+  signAccessTokenAndRefreshToken(user: IUserDocument) {
+    return {
+      accessToken: this.signAccessToken(user),
+      refreshToken: this.signRefreshToken(user),
+    };
   }
 }
 

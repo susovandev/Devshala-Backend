@@ -17,6 +17,9 @@ const BaseEnvSchema = z.object({
   MAIL_PORT: z.coerce.number().default(465),
   MAIL_USER: z.string().default('FgM5j@example.com'),
   MAIL_PASSWORD: z.string().default('password'),
+
+  ACCESS_TOKEN_SECRET_KEY: z.string().default('access-token-secret-key'),
+  REFRESH_TOKEN_SECRET_KEY: z.string().default('refresh-token-secret-key'),
 });
 
 const DatabaseEnvSchema = z.object({

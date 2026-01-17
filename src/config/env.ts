@@ -22,6 +22,10 @@ const BaseEnvSchema = z.object({
   REFRESH_TOKEN_SECRET_KEY: z.string().default('refresh-token-secret-key'),
 
   FORGOT_PASSWORD_SECRET_KEY: z.string().default('forgot-password-secret-key'),
+
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
 });
 
 const DatabaseEnvSchema = z.object({

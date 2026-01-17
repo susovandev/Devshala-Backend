@@ -31,6 +31,7 @@ import Logger from '@config/logger.js';
 import { LoginStatus } from 'models/login.model.js';
 import forgotPasswordEmailTemplate from 'mail/templates/auth/forgotPasswordEmail.template.js';
 import { env } from '@config/env.js';
+import profileRepo from '@modules/user/profile.repo.js';
 
 class AuthService {
   // TODO: Applying mongoose transaction, bullmq
@@ -69,7 +70,7 @@ class AuthService {
     }
 
     // Store user information in userProfile DB
-    const userProfile = await userRepo.createUserProfile(user._id.toString());
+    const userProfile = await profileRepo.createUserProfile(user._id.toString());
     if (!userProfile) {
       Logger.error('Creating user profile failed');
       throw new InternalServerError('Creating user profile failed');

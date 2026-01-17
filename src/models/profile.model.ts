@@ -33,7 +33,7 @@ const userProfileSchema = new Schema<IUserProfileDocument>(
       twitter: { type: String },
     },
   },
-  { timestamps: true },
+  { timestamps: true, versionKey: false, id: false },
 );
 
 export default model<IUserProfileDocument>('UserProfile', userProfileSchema);

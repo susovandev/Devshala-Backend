@@ -1,11 +1,10 @@
 import { type IGetUserParams, type ICreateUserParams, sendUserInformation } from './user.types.js';
 import userModel, { UserRole } from 'models/user.model.js';
-import userProfileModel from 'models/profile.model.js';
 import Logger from '@config/logger.js';
 import mongoose from 'mongoose';
 import { UnauthorizedError } from '@libs/errors.js';
 class UserRepo {
-  async getProfileByUserId(userId: string) {
+  async getProfileInfoByUserId(userId: string) {
     Logger.debug('Getting user profile...');
     const userProfile = await userModel.aggregate([
       {
@@ -53,6 +52,12 @@ class UserRepo {
     return user;
   }
 
+  async updateUserName(userId: string, username: string) {
+    Logger.debug('Updating user profile...');
+
+    return await userModel.updateOne({ _id: userId, isDeleted: false }, { $set: { username } });
+  }
+
   async markEmailAsVerified(userId: string) {
     return await userModel.findByIdAndUpdate(userId, { isEmailVerified: true }, { new: true });
   }
@@ -61,11 +66,6 @@ class UserRepo {
     Logger.debug('Reset password...');
     const { userId, passwordHash } = params;
     return await userModel.findByIdAndUpdate(userId, { passwordHash }, { new: true });
-  }
-
-  async createUserProfile(userId: string) {
-    Logger.debug('Creating user profile...');
-    return await userProfileModel.create({ userId });
   }
 }
 

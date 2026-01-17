@@ -58,3 +58,15 @@ export function sendUserInformation(user: any): IGetUserResponseResult {
     },
   };
 }
+
+export interface IUpdateUserProfileParams {
+  userId: string;
+  username?: string;
+  avatarLocalFilePath?: string;
+  bio?: string;
+  socialLinks?: {
+    github?: string;
+    linkedin?: string;
+    twitter?: string;
+  };
+}

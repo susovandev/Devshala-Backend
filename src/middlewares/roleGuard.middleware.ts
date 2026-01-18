@@ -7,7 +7,6 @@ export const RoleGuard =
   (req: AuthRequest, _res: Response, next: NextFunction): void => {
     try {
       const user = req.user;
-
       if (!user || !allowedRoles.includes(user.role as UserRole)) {
         throw new ForbiddenError('Access denied');
       }

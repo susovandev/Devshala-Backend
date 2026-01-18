@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { Schema, model, type Document } from 'mongoose';
+import mongoose, { Schema, model, type Document } from 'mongoose';
 
 export enum UserRole {
   USER = 'user',
@@ -14,6 +14,8 @@ export interface IUserDocument extends Document {
   passwordHash: string;
   role: UserRole;
   isEmailVerified: boolean;
+  mustChangePassword: boolean;
+  createdBy: mongoose.Types.ObjectId;
   isDeleted: boolean;
   isBlocked: boolean;
   isDisabled: boolean;
@@ -28,6 +30,8 @@ const userSchema = new Schema<IUserDocument>(
     passwordHash: { type: String, required: true, select: false },
     role: { type: String, required: true, enum: Object.values(UserRole), default: UserRole.USER },
     isEmailVerified: { type: Boolean, required: true, default: false },
+    mustChangePassword: { type: Boolean, default: false },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
     isDeleted: { type: Boolean, required: true, default: false, index: true },
     isBlocked: { type: Boolean, required: true, default: false },
     isDisabled: { type: Boolean, required: true, default: false },

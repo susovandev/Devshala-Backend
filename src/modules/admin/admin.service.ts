@@ -1,7 +1,5 @@
 import Logger from '@config/logger.js';
-import { TCreatePublisherRequestBody } from './admin.validations.js';
-import { IUserDocument, UserRole } from 'models/user.model.js';
-import adminRepo from './admin.repo.js';
+import userModel, { UserRole, UserStatus } from 'models/user.model.js';
 import authHelper from '@modules/auth/auth.helper.js';
 import { ConflictError, InternalServerError } from '@libs/errors.js';
 import { sendEmailService } from 'mail/index.js';
@@ -9,32 +7,42 @@ import { sendPublisherCredentialsMailTemplate } from 'mail/templates/admin/publi
 import { env } from '@config/env.js';
 
 class AdminService {
-  async createPublisherService(adminId: string, params: TCreatePublisherRequestBody) {
+  async createPublisherService({
+    adminId,
+    username,
+    email,
+  }: {
+    adminId: string;
+    username: string;
+    email: string;
+  }) {
     Logger.debug('Creating publisher...');
 
-    const { username, email } = params;
     const normalizedEmail = email.trim().toLowerCase();
 
-    let user: IUserDocument | null = null;
-
-    // Check user is already exits in db
-    const isAlreadyExists = await adminRepo.findPublisher({
-      username,
-      email: normalizedEmail,
+    // Find user by username and email
+    const user = await userModel.findOne({
+      $or: [{ username }, { email: normalizedEmail }],
     });
 
-    if (isAlreadyExists && isAlreadyExists.role === UserRole.PUBLISHER) {
-      Logger.info('User already exists');
-      throw new ConflictError('You already have a publisher account');
-    }
+    // Check if user already exists in
+    if (user) {
+      if (user.role === UserRole.PUBLISHER) {
+        throw new ConflictError('You already have a publisher account');
+      }
+      if (user.status !== UserStatus.ACTIVE) {
+        throw new ConflictError('Your account is not active');
+      }
+      if (user.isDeleted) {
+        throw new ConflictError('Your account is deleted');
+      }
 
-    if (isAlreadyExists && isAlreadyExists.role !== UserRole.PUBLISHER) {
-      Logger.info('User already exists');
       // Update role
-      user = await adminRepo.updateRole(isAlreadyExists._id.toString(), UserRole.PUBLISHER);
+      user.role = UserRole.PUBLISHER;
+      await user.save();
     }
 
-    // Generate a random strong password
+    // Generate verification code
     const randomStrongPassword = authHelper.generateStrongRandomPassword();
     if (!randomStrongPassword) {
       Logger.error('Generating random strong password failed');
@@ -48,25 +56,30 @@ class AdminService {
       throw new InternalServerError('Hashing password failed');
     }
 
-    // Store user in DB
-    user = await adminRepo.createPublisher({
+    // Create new publisher in DB
+    const publisher = await userModel.create({
       username,
       email: normalizedEmail,
       passwordHash: hashPassword,
-      adminId,
+      role: UserRole.PUBLISHER,
+      isEmailVerified: true,
+      mustChangePassword: true,
+      createdBy: adminId,
+      status: UserStatus.ACTIVE,
     });
-    if (!user) {
+
+    if (!publisher) {
       Logger.error('Creating publisher failed');
       throw new InternalServerError('Creating publisher failed');
     }
 
-    // Send credentials to user
+    // Send credentials to publisher email
     await sendEmailService({
-      recipient: normalizedEmail,
+      recipient: publisher.email,
       subject: 'Your credentials',
       htmlTemplate: sendPublisherCredentialsMailTemplate({
         appName: 'Devshala',
-        publisherName: username,
+        publisherName: publisher.username,
         email,
         password: randomStrongPassword,
         loginUrl: `${env.CLIENT_DEVELOPMENT_URL}/auth/signin`,
@@ -74,8 +87,92 @@ class AdminService {
         supportEmail: env.SUPPORT_EMAIL,
       }),
     });
-
     return user;
+  }
+
+  async blockUserService({
+    adminId,
+    userId,
+    reason,
+  }: {
+    adminId: string;
+    userId: string;
+    reason: string;
+  }) {
+    Logger.debug('Blocking user...');
+    const user = await userModel.findOne({
+      _id: userId,
+      isDeleted: false,
+    });
+
+    // Check if user exists
+    if (!user) {
+      Logger.error(`User not found with id: ${userId}`);
+      throw new ConflictError('User not found');
+    }
+
+    // Check is user already blocked or disabled
+    if (user.status === UserStatus.DISABLED || user.status === UserStatus.BLOCKED) {
+      throw new ConflictError('User is already blocked or disabled');
+    }
+
+    // Block user
+    const blockedUser = await userModel.findByIdAndUpdate(
+      { _id: user._id },
+      {
+        $set: {
+          status: UserStatus.BLOCKED,
+          blockedAt: new Date(),
+          blockedReason: reason,
+          blockedBy: adminId,
+        },
+      },
+      { new: true },
+    );
+
+    if (!blockedUser) {
+      Logger.error('Blocking user failed');
+      throw new InternalServerError('Blocking user failed');
+    }
+
+    //TODO SEND BLOCK USER EMAIL
+    return;
+  }
+
+  async unblockUserService({ adminId, userId }: { adminId: string; userId: string }) {
+    Logger.debug('Unblocking user...');
+    const user = await userModel.findOne({
+      _id: userId,
+      isDeleted: false,
+      status: UserStatus.BLOCKED,
+    });
+
+    // Check if user exists
+    if (!user) {
+      Logger.error(`User not found with id: ${userId}`);
+      throw new ConflictError('User not found or not blocked');
+    }
+
+    // Unblock user
+    const unblockedUser = await userModel.findByIdAndUpdate(
+      { _id: user._id },
+      {
+        $set: {
+          status: UserStatus.ACTIVE,
+          unblockedAt: new Date(),
+          unblockedBy: adminId,
+        },
+      },
+      { new: true },
+    );
+
+    if (!unblockedUser) {
+      Logger.error('Unblocking user failed');
+      throw new InternalServerError('Unblocking user failed');
+    }
+
+    //TODO SEND UNBLOCK USER EMAIL
+    return;
   }
 }
 

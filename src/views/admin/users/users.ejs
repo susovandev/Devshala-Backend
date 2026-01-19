@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include("../../partials/head.ejs", {title}) %>
+
+<body class="bg-gray-100 min-h-screen">
+
+<div class="flex min-h-screen">
+
+  <!-- SIDEBAR -->
+  <%- include('../../partials/admin/dashboard/sidebar.ejs', {admin}) %>
+
+  <!-- MAIN -->
+  <div class="flex-1 flex flex-col">
+
+    <!-- TOP BAR -->
+    <%- include("../../partials/admin/dashboard/topbar.ejs", {notificationsCount}) %>
+
+    <!-- CONTENT -->
+    <main class="flex-1 p-6">
+      <!-- TABLE -->
+      <div class="bg-white rounded-xl shadow overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 text-sm">
+            <tr>
+              <th class="px-6 py-3 text-left">Users</th>
+              <th class="px-6 py-3 text-left">Email</th>
+              <th class="px-6 py-3 text-left">Status</th>
+              <th class="px-6 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody class="divide-y">
+            <% publishers.forEach(user => { %>
+              <tr>
+                <td class="px-6 py-4 flex items-center gap-3">
+                  <img
+                    src="<%= user.avatar.url || '/images/default-avatar.png' %>"
+                    class="w-9 h-9 rounded-full border"
+                  />
+                  <span class="font-medium"><%= user.username %></span>
+                </td>
+
+                <td class="px-6 py-4 text-sm text-gray-600">
+                  <%= user.email %>
+                </td>
+
+                <td class="px-6 py-4">
+                  <% if (user.status === 'DISABLED') { %>
+                    <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                      Disabled
+                    </span>
+                  <% } else if (user.status === 'BLOCKED') { %>
+                    <span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
+                      Blocked
+                    </span>
+                  <% } else { %>
+                    <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded">
+                      Active
+                    </span>
+                  <% } %>
+                </td>
+
+                <td class="px-6 py-4 text-right space-x-2">
+
+  <!-- ACTIVE -->
+  <% if (user.status === 'ACTIVE') { %>
+    <button
+      onclick="openActionModal('<%= user._id %>', 'block')"
+      class="px-3 py-1 text-sm rounded bg-red-500 text-white hover:bg-red-600"
+    >
+      Block
+    </button>
+
+    <button
+      onclick="openActionModal('<%= user._id %>', 'disable')"
+      class="px-3 py-1 text-sm rounded bg-gray-700 text-white hover:bg-gray-800"
+    >
+      Disable
+    </button>
+  <% } %>
+
+  <!-- BLOCKED -->
+  <% if (user.status === 'BLOCKED') { %>
+    <button
+      onclick="openActionModal('<%= user._id %>', 'activate')"
+      class="px-3 py-1 text-sm rounded bg-green-600 text-white hover:bg-green-700"
+    >
+      Activate
+    </button>
+  <% } %>
+
+  <!-- DISABLED -->
+  <% if (user.status === 'DISABLED') { %>
+    <button
+      onclick="openActionModal('<%= user._id %>', 'activate')"
+      class="px-3 py-1 text-sm rounded bg-green-600 text-white hover:bg-green-700"
+    >
+      Activate
+    </button>
+  <% } %>
+
+</td>
+
+
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+
+<!-- ACTION MODAL -->
+<div id="actionModal" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center" onclick="closeActionModal()">
+  <div class="bg-white rounded-xl p-6 w-full max-w-md" onclick="event.stopPropagation()">
+    <h3 id="actionTitle" class="font-semibold mb-3"></h3>
+
+    <form id="actionForm" method="POST" class="space-y-4">
+      <textarea
+        id="reasonField"
+        name="reason"
+        rows="4"
+        placeholder="Enter valid reason..."
+        class="w-full border px-3 py-2 rounded resize-none"
+      ></textarea>
+
+      <div class="flex justify-end gap-3">
+        <button type="button" onclick="closeActionModal()">Cancel</button>
+        <button type="submit" id="actionBtn" class="px-4 py-2 rounded text-white"></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+<script>
+  const actionModal = document.getElementById('actionModal');
+  const actionForm = document.getElementById('actionForm');
+  const actionTitle = document.getElementById('actionTitle');
+  const actionBtn = document.getElementById('actionBtn');
+  const reasonField = document.getElementById('reasonField');
+
+  function openActionModal(userId, type) {
+    actionModal.classList.remove('hidden');
+    actionModal.classList.add('flex');
+
+    actionForm.reset();
+    reasonField.required = false;
+    reasonField.classList.remove('hidden');
+    actionBtn.disabled = false;
+
+    switch (type) {
+      case 'block':
+        actionTitle.innerText = 'Block Publisher';
+        actionBtn.innerText = 'Block';
+        actionBtn.className = 'px-4 py-2 rounded text-white bg-red-600 hover:bg-red-700';
+        actionForm.action = `/admin/users/${userId}/block`;
+        reasonField.required = true;
+        break;
+
+      case 'disable':
+        actionTitle.innerText = 'Disable Publisher Account';
+        actionBtn.innerText = 'Disable';
+        actionBtn.className = 'px-4 py-2 rounded text-white bg-gray-800 hover:bg-gray-900';
+        actionForm.action = `/admin/users/${userId}/disable`;
+        reasonField.required = true;
+        break;
+
+      case 'activate':
+        actionTitle.innerText = 'Activate Publisher Account';
+        actionBtn.innerText = 'Activate';
+        actionBtn.className = 'px-4 py-2 rounded text-white bg-green-600 hover:bg-green-700';
+        actionForm.action = `/admin/users/${userId}/activate`;
+        reasonField.classList.add('hidden');
+        break;
+    }
+  }
+
+  function closeActionModal() {
+    actionModal.classList.add('hidden');
+    actionModal.classList.remove('flex');
+  }
+
+  // prevent empty-space reason
+  actionForm.addEventListener('submit', () => {
+    if (reasonField.required && !reasonField.value.trim()) {
+      event.preventDefault();
+      reasonField.focus();
+      return;
+    }
+    actionBtn.disabled = true;
+  });
+
+  // ESC key close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeActionModal();
+      closeCreateModal();
+    }
+  });
+</script>
+
+
+
+</body>
+</html>

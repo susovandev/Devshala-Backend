@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { type Request } from 'express';
 import { IUserDocument, UserRole } from 'models/user.model.js';
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
@@ -17,6 +18,7 @@ interface IResetPasswordJwtPayload {
 
 class AuthHelper {
   async hashPasswordHelper(password: string): Promise<string | null> {
+    Logger.debug('Hashing password...');
     const genSalt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, genSalt);
     if (!hashedPassword) return null;
@@ -24,6 +26,7 @@ class AuthHelper {
   }
 
   async comparePasswordHelper(password: string, hashedPassword: string): Promise<boolean> {
+    Logger.debug('Comparing password...');
     if (!hashedPassword) return false;
     const isPasswordCorrect = await bcrypt.compare(password, hashedPassword);
     if (!isPasswordCorrect) return false;
@@ -31,6 +34,7 @@ class AuthHelper {
   }
 
   generateStrongRandomPassword(): string | null {
+    Logger.debug('Generating strong random password...');
     const length = 8;
     const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let password = '';
@@ -43,16 +47,20 @@ class AuthHelper {
   }
 
   generateRandomOtp(): number {
+    Logger.debug('Generating verification code...');
     return Math.floor(100000 + Math.random() * 900000);
   }
 
   hashVerificationCodeHelper(verificationCode: string): string | null {
+    Logger.debug('Hashing verification code...');
     const verificationCodeHash = crypto.createHash('sha256').update(verificationCode).digest('hex');
     if (!verificationCodeHash) return null;
     return verificationCodeHash;
   }
 
   signAccessToken(user: IUserDocument): string | null {
+    Logger.debug('Signing access token...');
+    if (!user) return null;
     const payload: IResetPasswordJwtPayload = {
       sub: user._id.toString(),
       role: user.role,
@@ -60,10 +68,13 @@ class AuthHelper {
     const accessToken = jwt.sign(payload, env.ACCESS_TOKEN_SECRET_KEY, {
       expiresIn: ACCESS_TOKEN_TTL,
     } as jwt.SignOptions);
+    if (!accessToken) return null;
     return accessToken;
   }
 
   signRefreshToken(user: IUserDocument): string | null {
+    Logger.debug('Signing refresh token...');
+    if (!user) return null;
     const payload: IResetPasswordJwtPayload = {
       sub: user._id.toString(),
       role: user.role,
@@ -71,29 +82,53 @@ class AuthHelper {
     const refreshToken = jwt.sign(payload, env.REFRESH_TOKEN_SECRET_KEY, {
       expiresIn: REFRESH_TOKEN_TTL,
     } as jwt.SignOptions);
+    if (!refreshToken) return null;
     return refreshToken;
   }
 
   signAccessTokenAndRefreshToken(user: IUserDocument) {
+    Logger.debug('Signing access token and refresh token...');
+    if (!user) return null;
+
+    const accessToken = this.signAccessToken(user);
+    const refreshToken = this.signRefreshToken(user);
+    if (!accessToken || !refreshToken) return null;
     return {
-      accessToken: this.signAccessToken(user),
-      refreshToken: this.signRefreshToken(user),
+      accessToken,
+      refreshToken,
     };
   }
 
-  verifyAccessToken(token: string): jwt.JwtPayload {
-    return jwt.verify(token, env.ACCESS_TOKEN_SECRET_KEY) as jwt.JwtPayload;
+  verifyAccessToken(token: string): jwt.JwtPayload | null {
+    Logger.debug('Verifying access token...');
+    const decoded = jwt.verify(token, env.ACCESS_TOKEN_SECRET_KEY) as jwt.JwtPayload;
+    if (!decoded) {
+      return null;
+    }
+    return decoded;
   }
 
-  generateResetPasswordSecret(user: IUserDocument): string {
+  verifyRefreshToken(token: string): jwt.JwtPayload | null {
+    Logger.debug('Verifying refresh token...');
+    const decoded = jwt.verify(token, env.REFRESH_TOKEN_SECRET_KEY) as jwt.JwtPayload;
+    if (!decoded) {
+      return null;
+    }
+    return decoded;
+  }
+  generateResetPasswordSecret(user: IUserDocument): string | null {
+    Logger.debug('Generating reset password token...');
     const payload: IResetPasswordJwtPayload = {
       sub: user._id.toString(),
       role: user.role,
     };
 
-    return jwt.sign(payload, env.FORGOT_PASSWORD_SECRET_KEY, {
+    const token = jwt.sign(payload, env.FORGOT_PASSWORD_SECRET_KEY, {
       expiresIn: FORGOT_PASSWORD_EXPIRY_MINUTES,
     });
+
+    if (!token) return null;
+    return token;
   }
 
   verifyResetPasswordSecret(token: string): IResetPasswordJwtPayload | null {
@@ -117,6 +152,19 @@ class AuthHelper {
       return null;
     }
   }
+
+  getClientMeta = (req: Request) => {
+    const forwardedFor = req.headers['x-forwarded-for'];
+
+    return {
+      ip:
+        (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor?.split(',')[0]) ||
+        req.ip ||
+        'UNKNOWN_IP',
+
+      userAgent: req.headers['user-agent'] || 'UNKNOWN_AGENT',
+    };
+  };
 }
 
 export default new AuthHelper();

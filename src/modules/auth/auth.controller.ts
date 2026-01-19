@@ -1,3 +1,4 @@
+/*
 import Logger from '@config/logger.js';
 import type { Request, Response, NextFunction } from 'express';
 import authService from './auth.service.js';
@@ -8,9 +9,11 @@ import { ACCESS_TOKEN_TTL, REFRESH_TOKEN_TTL } from './auth.constants.js';
 import { AuthRequest } from './auth.types.js';
 
 class AuthController {
-  async signupHandler(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+  async userRegisterController(req: Request, res: Response): Promise<Response | void> {
     try {
       Logger.info(`Signup route called with data: ${JSON.stringify(req.body)}`);
+
+      // 1. Check if user already regis
 
       const user = await authService.signupService(req.body);
 
@@ -22,8 +25,11 @@ class AuthController {
             `${user?.username}Your account has been created, email has been sent`,
           ),
         );
-    } catch (error) {
-      return next(error);
+    } catch (error: any) {
+      Logger.error(error);
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json(new ApiResponse(StatusCodes.BAD_REQUEST, 'User already exists'));
     }
   }
 
@@ -160,3 +166,5 @@ class AuthController {
 }
 
 export default new AuthController();
+
+*/

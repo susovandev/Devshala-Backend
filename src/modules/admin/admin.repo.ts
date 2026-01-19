@@ -1,4 +1,4 @@
-import userModel, { UserRole } from 'models/user.model.js';
+import userModel, { UserRole, UserStatus } from 'models/user.model.js';
 import { TCreatePublisherRequestBody } from './admin.validations.js';
 import Logger from '@config/logger.js';
 class AdminRepo {
@@ -16,6 +16,23 @@ class AdminRepo {
   async updateRole(userId: string, role: UserRole) {
     Logger.debug('Updating user role...');
     return await userModel.findByIdAndUpdate(userId, { role }, { new: true });
+  }
+
+  async updateUsersAccountStatus(userId: string, status: UserStatus) {
+    Logger.debug('Updating user account status...');
+    return await userModel.findOneAndUpdate(
+      {
+        _id: userId,
+        isDeleted: false,
+        status: { $ne: UserStatus.DISABLED },
+      },
+      {
+        $set: {
+          status,
+        },
+      },
+      { new: true },
+    );
   }
 
   async createPublisher(params: {

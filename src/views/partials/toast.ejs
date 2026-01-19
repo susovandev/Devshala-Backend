@@ -1,0 +1,28 @@
+<div
+  id="toast-container"
+  class="fixed top-5 right-5 z-50 space-y-3"
+>
+  <% if (success && success.length) { %>
+    <div
+      class="toast flex items-center rounded-lg bg-green-600 px-4 py-3 text-white shadow-lg"
+    >
+      <span class="text-sm font-medium"><%= success[0] %></span>
+    </div>
+  <% } %>
+
+  <% if (error && error.length) { %>
+    <div
+      class="toast flex items-center rounded-lg bg-red-600 px-4 py-3 text-white shadow-lg"
+    >
+      <span class="text-sm font-medium"><%= error[0] %></span>
+    </div>
+  <% } %>
+
+  <% if (info && info.length) { %>
+    <div
+      class="toast flex items-center rounded-lg bg-blue-600 px-4 py-3 text-white shadow-lg"
+    >
+      <span class="text-sm font-medium"><%= info[0] %></span>
+    </div>
+  <% } %>
+</div>

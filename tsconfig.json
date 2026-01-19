@@ -6,6 +6,7 @@
     "lib": ["ES2022"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "typeRoots": ["./src/types", "./node_modules/@types"],
 
     // Paths
     "rootDir": "./src",

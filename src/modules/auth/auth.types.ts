@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { LoginStatus } from 'models/login.model.js';
 import { Request } from 'express';
+import { IFileShape, UserStatus } from 'models/user.model.js';
 
 export interface ISignupRequestBody {
   username: string;
@@ -53,6 +54,11 @@ export interface ICreateRefreshTokenRecordParam {
 export interface IAuthUserShape {
   userId: string;
   role: string;
+  username: string;
+  email: string;
+  isEmailVerified: boolean;
+  status: UserStatus;
+  avatarUrl?: IFileShape;
 }
 export interface AuthRequest<ReqBody = unknown, ReqParams = unknown, ReqQuery = unknown>
   extends Request<ReqParams, any, ReqBody, ReqQuery> {

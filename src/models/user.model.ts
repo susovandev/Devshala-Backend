@@ -1,11 +1,29 @@
 /* eslint-disable no-unused-vars */
 import mongoose, { Schema, model, type Document } from 'mongoose';
 
+export interface IFileShape {
+  publicId: string;
+  url: string;
+}
+
+export interface IUserSocialLinksShape {
+  github: string;
+  linkedin: string;
+  twitter: string;
+}
+
 export enum UserRole {
   USER = 'user',
   ADMIN = 'admin',
   PUBLISHER = 'publisher',
   AUTHOR = 'author',
+}
+
+export enum UserStatus {
+  PENDING = 'PENDING',
+  ACTIVE = 'ACTIVE',
+  BLOCKED = 'BLOCKED',
+  DISABLED = 'DISABLED',
 }
 
 export interface IUserDocument extends Document {
@@ -14,11 +32,31 @@ export interface IUserDocument extends Document {
   passwordHash: string;
   role: UserRole;
   isEmailVerified: boolean;
+
+  avatarUrl?: IFileShape;
+  bio?: string;
+  socialLinks?: IUserSocialLinksShape;
+
   mustChangePassword: boolean;
-  createdBy: mongoose.Types.ObjectId;
+  createdBy?: mongoose.Types.ObjectId;
+  status: UserStatus;
+
+  blockedReason?: string;
+  blockedAt?: Date;
+  blockedBy?: mongoose.Types.ObjectId;
+
+  unblockedAt?: Date;
+  unblockedBy?: mongoose.Types.ObjectId;
+
+  disabledReason?: string;
+  disabledAt?: Date;
+  disabledBy?: mongoose.Types.ObjectId;
+
   isDeleted: boolean;
-  isBlocked: boolean;
-  isDisabled: boolean;
+  deletedReason?: string;
+  deletedAt?: Date;
+  deletedBy?: mongoose.Types.ObjectId;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,11 +68,39 @@ const userSchema = new Schema<IUserDocument>(
     passwordHash: { type: String, required: true, select: false },
     role: { type: String, required: true, enum: Object.values(UserRole), default: UserRole.USER },
     isEmailVerified: { type: Boolean, required: true, default: false },
+    avatarUrl: {
+      publicId: { type: String },
+      url: { type: String },
+    },
+    bio: { type: String },
+    socialLinks: {
+      github: { type: String },
+      linkedin: { type: String },
+      twitter: { type: String },
+    },
+
     mustChangePassword: { type: Boolean, default: false },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
-    isDeleted: { type: Boolean, required: true, default: false, index: true },
-    isBlocked: { type: Boolean, required: true, default: false },
-    isDisabled: { type: Boolean, required: true, default: false },
+    status: {
+      type: String,
+      enum: Object.values(UserStatus),
+      default: UserStatus.PENDING,
+    },
+    blockedReason: { type: String },
+    blockedAt: { type: Date },
+    blockedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+
+    unblockedAt: { type: Date },
+    unblockedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+
+    disabledBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    disabledReason: { type: String },
+    disabledAt: { type: Date },
+
+    isDeleted: { type: Boolean, default: false },
+    deletedReason: { type: String },
+    deletedAt: { type: Date },
+    deletedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true },
 );

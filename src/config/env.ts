@@ -4,6 +4,7 @@ const BaseEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().default(5555),
   HOST: z.string().default('127.0.0.1'),
+  BASE_URL: z.string().default('http://localhost:5555'),
 
   SERVICE_NAME: z.string().default('DevshalaBackend'),
   API_VERSION: z.string().default('1.0.0'),
@@ -26,6 +27,8 @@ const BaseEnvSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
+
+  SESSION_SECRET: z.string().default('session-secret'),
 });
 
 const DatabaseEnvSchema = z.object({

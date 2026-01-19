@@ -1,3 +1,4 @@
+/*
 import userRepo from '@modules/user/user.repo.js';
 import type {
   IAuthUserShape,
@@ -31,7 +32,6 @@ import Logger from '@config/logger.js';
 import { LoginStatus } from 'models/login.model.js';
 import forgotPasswordEmailTemplate from 'mail/templates/auth/forgotPasswordEmail.template.js';
 import { env } from '@config/env.js';
-import profileRepo from '@modules/user/profile.repo.js';
 
 class AuthService {
   // TODO: Applying mongoose transaction, bullmq
@@ -470,3 +470,5 @@ class AuthService {
 }
 
 export default new AuthService();
+
+*/

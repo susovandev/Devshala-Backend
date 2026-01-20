@@ -5,5 +5,10 @@ declare module 'express-session' {
     flash?: {
       [key: string]: string[];
     };
+    pendingUser?: {
+      userId: string;
+      email: string;
+      username: string;
+    };
   }
 }

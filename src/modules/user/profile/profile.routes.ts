@@ -22,4 +22,16 @@ router.post('/avatar', upload.single('avatar'), userProfileController.updateUser
  */
 router.post('/', userProfileController.updateUserProfileHandler);
 
+/**
+ * @routes GET /users/auth/change-password
+ * @description Get user change-password page
+ */
+router.get('/change-password', userProfileController.renderUserChangePasswordPage);
+
+/**
+ * @routes POST /users/auth/change-password
+ * @description User change-password
+ */
+router.post('/change-password', userProfileController.userChangePasswordHandler);
+
 export default router;

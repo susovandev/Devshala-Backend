@@ -5,6 +5,12 @@ class UserRepliesController {
     try {
       Logger.info('Getting user profile page...');
 
+      if (!req.user) {
+        Logger.error('User not found');
+        req.flash('error', 'User not found please try again');
+        return res.redirect('/users/auth/login');
+      }
+
       return res.render('users/replies', {
         title: 'User | Replies',
         pageTitle: 'User Replies',

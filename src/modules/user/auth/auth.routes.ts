@@ -7,6 +7,7 @@ import {
   userResetPasswordValidationSchema,
 } from './auth.validations.js';
 import userAuthController from './auth.controller.js';
+import { AuthGuard } from '@middlewares/auth.middleware.js';
 
 const router: Router = Router();
 
@@ -37,6 +38,18 @@ router.get('/verify-otp', userAuthController.renderUserVerifyOtpPage);
  * @description User verify otp Handler
  */
 router.post('/verify-otp', userAuthController.userVerifyOtpHandler);
+
+/**
+ * @routes GET /users/auth/resend-otp
+ * @description Get user resend otp page
+ */
+router.get('/resend-otp', userAuthController.renderUserResendOtpPage);
+
+/**
+ * @routes POST /users/auth/resend-otp
+ * @description User resend otp Handler
+ */
+router.post('/resend-otp', userAuthController.userResendOtpHandler);
 
 /**
  * @routes GET /users/auth/login
@@ -90,6 +103,6 @@ router.post(
  * @routes POST /users/auth/logout
  * @description User logout
  */
-router.get('/logout', userAuthController.userLogoutHandler);
+router.post('/logout', AuthGuard, userAuthController.userLogoutHandler);
 
 export default router;

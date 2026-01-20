@@ -15,6 +15,14 @@ export const userRegisterValidationSchema = z.object({
 
 export type TUserRegisterDTO = z.infer<typeof userRegisterValidationSchema>;
 
+export const verifyOtpQueryValidationSchema = z.object({
+  userId: z.string().refine((val) => mongoose.Types.ObjectId.isValid(val), {
+    message: 'User id must be a valid mongoose ObjectId',
+  }),
+});
+
+export type TVerifyOtpQueryDTO = z.infer<typeof verifyOtpQueryValidationSchema>;
+
 export const userVerifyOtpValidationSchema = z.object({
   otp: z.string({ message: 'OTP is required' }).min(6, 'OTP must be at least 6 characters long'),
   userId: z.string().refine((val) => mongoose.Types.ObjectId.isValid(val), {

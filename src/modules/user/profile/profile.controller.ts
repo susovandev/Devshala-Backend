@@ -10,6 +10,8 @@ import {
 import { CLOUDINARY_FOLDER_NAME } from 'constants/index.js';
 import userModel from 'models/user.model.js';
 import { TUserUpdateProfileDTO } from './profile.validations.js';
+import authHelper from '@modules/auth/auth.helper.js';
+import refreshTokenModel from 'models/refreshToken.model.js';
 
 export function expandDotNotation(input: Record<string, any>) {
   const output: Record<string, any> = {};
@@ -42,6 +44,12 @@ class UserProfileController {
   async renderUserProfilePage(req: Request, res: Response) {
     try {
       Logger.info('Getting user profile page...');
+
+      if (!req.user) {
+        Logger.error('User not found');
+        req.flash('error', 'User not found please try again');
+        return res.redirect('/users/auth/login');
+      }
 
       return res.render('users/profile', {
         title: 'User | Profile',
@@ -193,6 +201,103 @@ class UserProfileController {
       Logger.error((error as Error).message);
       req.flash('error', (error as Error).message);
       return res.redirect('/users/profile');
+    }
+  }
+
+  async renderUserChangePasswordPage(req: Request, res: Response) {
+    try {
+      Logger.info('Getting user change password page...');
+
+      return res.render('users/auth/change-password', {
+        title: 'User | Change Password',
+        pageTitle: 'User Change Password',
+      });
+    } catch (error) {
+      Logger.error(`${(error as Error).message}`);
+      req.flash('error', (error as Error).message);
+      return res.redirect('/users/auth/profile');
+    }
+  }
+
+  async userChangePasswordHandler(req: Request, res: Response) {
+    try {
+      Logger.info(`Update user password route called`);
+
+      const userId = req.user?.userId;
+
+      const { currentPassword, newPassword, confirmPassword } = req.body;
+
+      // Validate userId
+      if (!userId) {
+        Logger.error('UserId not provided');
+        req.flash('error', 'Some error occurred please try again');
+        return res.redirect('/users/profile');
+      }
+
+      // 1.Find user with userId
+      const user = await userModel.findById(userId).select('+passwordHash');
+      if (!user) {
+        Logger.error('User not found in db');
+        req.flash('error', 'Some error occurred please try again');
+        return res.redirect('/users/auth/login');
+      }
+
+      // 2.Compare newPassword and comparePassword
+      if (newPassword !== confirmPassword) {
+        Logger.error('Passwords do not match');
+        req.flash('error', 'Passwords do not match');
+        return res.redirect('/users/profile/change-password');
+      }
+
+      // 3. Check password
+      const isPasswordMatch = await authHelper.comparePasswordHelper(
+        currentPassword,
+        user.passwordHash,
+      );
+      if (!isPasswordMatch) {
+        Logger.error('Password is incorrect');
+        req.flash('Please enter correct password');
+        return res.redirect('/users/profile/change-password');
+      }
+
+      // 4. Hash password
+      const newPasswordHash = await authHelper.hashPasswordHelper(newPassword);
+      if (!newPasswordHash) {
+        Logger.error('Hashing password failed');
+        req.flash('error', 'Some error occurred please try again');
+        return res.redirect('/users/profile/change-password');
+      }
+
+      // 5. Update password
+      const updatedResult = await userModel.findByIdAndUpdate(
+        user?._id,
+        {
+          passwordHash: newPasswordHash,
+        },
+        { new: true },
+      );
+      if (!updatedResult) {
+        Logger.error('Updating password failed');
+        req.flash('error', 'Some error occurred please try again');
+        return res.redirect('/users/profile/change-password');
+      }
+
+      // 6. Remove refresh token
+      const deletedRefreshTokenRecord = await refreshTokenModel.deleteMany({
+        userId,
+      });
+      if (!deletedRefreshTokenRecord) {
+        Logger.error('Deleting refresh token record failed');
+        req.flash('error', 'Some error occurred please try again');
+        return res.redirect('/users/profile');
+      }
+
+      req.flash('success', 'Password updated successfully');
+      return res.redirect('/users/auth/login');
+    } catch (error) {
+      Logger.error(`${(error as Error).message}`);
+      req.flash('error', (error as Error).message);
+      return res.redirect('/users/profile/change-password');
     }
   }
 }

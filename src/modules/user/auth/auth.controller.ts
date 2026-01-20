@@ -17,7 +17,8 @@ import {
   TUserRegisterDTO,
   TUserResetPasswordDTO,
   TUserResetPasswordQueryDTO,
-  // TUserVerifyOtpDTO,
+  TUserVerifyOtpDTO,
+  TVerifyOtpQueryDTO,
 } from './auth.validations.js';
 import refreshTokenModel from 'models/refreshToken.model.js';
 import { env } from '@config/env.js';
@@ -46,7 +47,8 @@ class UserAuthController {
         pageTitle: 'User Register',
       });
     } catch (error) {
-      Logger.error(`${(error as Error).message}`);
+      Logger.warn(`${(error as Error).message}`);
+
       req.flash('error', (error as Error).message);
       return res.redirect('/users/auth/register');
     }
@@ -77,7 +79,8 @@ class UserAuthController {
 
       // 2. If user is already registered, throw error
       if (user) {
-        Logger.error('User already exists');
+        Logger.warn(`User is already exits with email: ${email}`);
+
         req.flash('error', 'Your account is already registered please try login');
         return res.redirect('/users/auth/login');
       }
@@ -85,7 +88,8 @@ class UserAuthController {
       // 3. Hash Password
       const hashPassword = await authHelper.hashPasswordHelper(password);
       if (!hashPassword) {
-        Logger.error('Hashing password failed');
+        Logger.warn('Hashing password failed');
+
         req.flash('error', 'Error occurred while registering your account please try again');
         return res.redirect('/users/auth/register');
       }
@@ -97,7 +101,8 @@ class UserAuthController {
         passwordHash: hashPassword,
       });
       if (!newUser) {
-        Logger.error('Creating user failed');
+        Logger.warn('Creating user failed');
+
         req.flash('error', 'Error occurred while registering your account please try again');
         return res.redirect('/users/auth/register');
       }
@@ -105,7 +110,8 @@ class UserAuthController {
       // 5. Generate random OTP
       const rawVerificationCode = authHelper.generateRandomOtp();
       if (!rawVerificationCode) {
-        Logger.error('Generating random OTP failed');
+        Logger.warn('Generating random OTP failed');
+
         req.flash('error', 'Error occurred while registering your account please try again');
         return res.redirect('/users/auth/register');
       }
@@ -115,7 +121,8 @@ class UserAuthController {
         rawVerificationCode.toString(),
       );
       if (!hashedVerificationHashCode) {
-        Logger.error('Hashing verification code failed');
+        Logger.warn('Hashing verification code failed');
+
         req.flash('error', 'Error occurred while registering your account please try again');
         return res.redirect('/users/auth/register');
       }
@@ -128,7 +135,8 @@ class UserAuthController {
         verificationType: VerificationType.EMAIL_VERIFICATION,
       });
       if (!newVerificationCodeRecord) {
-        Logger.error('Creating verification code failed');
+        Logger.warn('Creating verification code failed');
+
         req.flash('error', 'Error occurred while registering your account please try again');
         return res.redirect('/users/auth/register');
       }
@@ -150,7 +158,8 @@ class UserAuthController {
         }),
       });
       if (!newEmailRecord) {
-        Logger.error('Creating email failed');
+        Logger.warn('Creating email failed');
+
         req.flash('error', 'Error occurred while registering your account please try again');
         return res.redirect('/users/auth/register');
       }
@@ -161,13 +170,21 @@ class UserAuthController {
         htmlTemplate: newEmailRecord.body,
       });
 
+      // 9. Store userId in session
+      req.session.pendingUser = {
+        userId: newUser._id.toString(),
+        email: newUser.email,
+        username: newUser.username,
+      };
+
       // TODO: Add job to emit notification to admin
 
       Logger.info('User has been registered successfully');
       req.flash('success', 'Account Verification email has been sent to your email');
-      return res.redirect(`/users/auth/verify-otp?userId=${newUser._id}`);
+      return res.redirect(`/users/auth/verify-otp`);
     } catch (error) {
-      Logger.error(`${(error as Error).message}`);
+      Logger.warn(`${(error as Error).message}`);
+
       req.flash('error', `${(error as Error).message}`);
       return res.redirect('/users/auth/register');
     }
@@ -181,13 +198,18 @@ class UserAuthController {
    * @returns {Promise<Response>} - A promise that resolves with the rendered verify otp page.
    * @throws {Error} - If any error occurs while rendering the verify otp page.
    */
-  async renderUserVerifyOtpPage(req: Request, res: Response) {
+  async renderUserVerifyOtpPage(
+    req: Request<object, object, object, TVerifyOtpQueryDTO>,
+    res: Response,
+  ) {
     try {
       Logger.info('Getting user verify email page...');
 
-      const userId = req.query.userId;
+      // 1. Get userId from session
+      const userId = req.session.pendingUser?.userId;
       if (!userId) {
-        Logger.error('User id not found');
+        Logger.warn('User id not found');
+
         req.flash('error', 'User id not found please try again');
         return res.redirect('/users/auth/register');
       }
@@ -198,7 +220,8 @@ class UserAuthController {
         userId,
       });
     } catch (error) {
-      Logger.error(`${(error as Error).message}`);
+      Logger.warn(`${(error as Error).message}`);
+
       req.flash('error', (error as Error).message);
       return res.redirect('/users/auth/register');
     }
@@ -212,14 +235,15 @@ class UserAuthController {
    * @returns {Promise<Response>} - A promise that resolves with the rendered login page.
    * @throws {Error} - If any error occurs while verifying the user otp.
    */
-  async userVerifyOtpHandler(req: Request, res: Response) {
+  async userVerifyOtpHandler(req: Request<object, object, TUserVerifyOtpDTO>, res: Response) {
     try {
       Logger.info('Verifying user otp...');
       const { otp, userId } = req.body;
 
       // Validate user id
       if (!userId) {
-        Logger.error('User id not found');
+        Logger.warn('User id not found');
+
         req.flash('error', 'User id not found please try again');
         return res.redirect('/users/auth/register');
       }
@@ -227,14 +251,16 @@ class UserAuthController {
       // 1. Find user by id
       const user = await userModel.findById(userId);
       if (!user) {
-        Logger.error('User not found');
+        Logger.warn('User not found');
+
         req.flash('error', 'Your account is not registered Please register first');
         return res.redirect('/users/auth/register');
       }
 
       // 2. Check if user has already verified or not
       if (user.isEmailVerified) {
-        Logger.error('Email already verified');
+        Logger.warn('Email already verified');
+
         req.flash('error', 'Email already verified please login');
         return res.redirect('/users/auth/login');
       }
@@ -247,7 +273,8 @@ class UserAuthController {
         verificationStatus: VerificationStatus.PENDING,
       });
       if (!verificationCodeRecord) {
-        Logger.error('Verification code not found');
+        Logger.warn('Verification code not found');
+
         req.flash('error', 'Invalid otp please try again');
         return res.redirect('/users/auth/verify-otp');
       }
@@ -258,7 +285,8 @@ class UserAuthController {
         verificationCodeRecord.verificationCode,
       );
       if (!isOtpVerified) {
-        Logger.error('Invalid otp');
+        Logger.warn('Invalid otp');
+
         req.flash('error', 'Invalid otp please try again');
         return res.redirect('/users/auth/verify-otp');
       }
@@ -273,11 +301,178 @@ class UserAuthController {
       await verificationCodeRecord.save({ validateBeforeSave: false });
 
       Logger.debug('User has been verified successfully');
+
       req.flash('success', 'Account has been verified successfully please login');
       return res.redirect('/users/auth/login');
     } catch (error) {
-      Logger.error(`${(error as Error).message}`);
+      Logger.warn(`${(error as Error).message}`);
+
       req.flash('error', (error as Error).message);
+      return res.redirect('/users/auth/login');
+    }
+  }
+
+  /**
+   * Renders the user resend otp page.
+   *
+   * @param {Request} req - The incoming request.
+   * @param {Response} res - The outgoing response.
+   *
+   * @throws {Error} - If any error occurs while rendering the resend otp page.
+   *
+   * @returns {Promise<Response>} - A promise that resolves with the rendered resend otp page.
+   */
+  async renderUserResendOtpPage(req: Request, res: Response) {
+    try {
+      Logger.info('Getting user resend otp page...');
+
+      const userId = req.session.pendingUser?.userId;
+      if (!userId) {
+        Logger.warn('User id not exits on query params');
+
+        req.flash('error', 'Something went wrong please try again');
+        return res.redirect('/users/auth/login');
+      }
+
+      return res.render('users/auth/resend-otp', {
+        title: 'User | Resend Otp',
+        pageTitle: 'User Resend Otp',
+        userId,
+      });
+    } catch (error) {
+      Logger.warn(`${(error as Error).message}`);
+
+      req.flash('error', (error as Error).message);
+      return res.redirect('/users/auth/login');
+    }
+  }
+
+  /**
+   * Handles the user resend otp request.
+   *
+   * @throws {Error} - If any error occurs while handling the resend otp request.
+   *
+   * @returns {Promise<Response>} - A promise that resolves with the rendered resend otp page.
+   */
+  async userResendOtpHandler(req: Request, res: Response) {
+    try {
+      Logger.info('Resending user OTP...');
+      const { userId } = req.body;
+
+      // 1. Validate user id
+      const user = await userModel.findOne({
+        _id: userId,
+        isDeleted: false,
+        status: UserStatus.PENDING,
+        isEmailVerified: false,
+      });
+
+      if (!user) {
+        Logger.warn('Invalid resend OTP request');
+
+        req.flash('error', 'Your account is not eligible for OTP verification');
+        return res.redirect('/users/auth/login');
+      }
+
+      //2 Get latest verification code
+      const latestOtp = await verificationCodeModel
+        .findOne({
+          userId: user._id.toString(),
+          verificationType: VerificationType.EMAIL_VERIFICATION,
+        })
+        .sort({ createdAt: -1 });
+
+      const now = new Date();
+
+      //3. If OTP exists & still valid → BLOCK resend
+      if (
+        latestOtp &&
+        latestOtp.verificationStatus === VerificationStatus.PENDING &&
+        latestOtp.verificationCodeExpiration > now
+      ) {
+        Logger.warn('OTP resend blocked — OTP still valid');
+
+        req.flash('error', 'OTP already sent. Please wait before requesting a new one.');
+        return res.redirect('/users/auth/verify-otp');
+      }
+
+      //4: Invalidate all previous OTPs
+      await verificationCodeModel.updateMany(
+        {
+          userId: user._id.toString(),
+          verificationType: VerificationType.EMAIL_VERIFICATION,
+          verificationStatus: VerificationStatus.PENDING,
+        },
+        {
+          $set: { verificationStatus: VerificationStatus.EXPIRED },
+        },
+      );
+
+      //5: Generate new OTP
+      const rawOtp = authHelper.generateRandomOtp();
+      if (!rawOtp) {
+        Logger.warn('OTP generation failed');
+
+        req.flash('error', 'Something went wrong please try again');
+        return res.redirect('/users/auth/login');
+      }
+
+      const hashedOtp = authHelper.hashVerificationCodeHelper(rawOtp.toString());
+      if (!hashedOtp) {
+        Logger.warn('OTP hashing failed');
+
+        req.flash('error', 'Something went wrong please try again');
+        return res.redirect('/users/auth/login');
+      }
+
+      // 6: Store new OTP
+      await verificationCodeModel.create({
+        userId: user._id.toString(),
+        verificationCode: hashedOtp,
+        verificationCodeExpiration: new Date(Date.now() + VERIFICATION_CODE_EXPIRATION_TIME),
+        verificationType: VerificationType.EMAIL_VERIFICATION,
+        verificationStatus: VerificationStatus.PENDING,
+      });
+
+      //7 Prepare & store email
+      const emailBody = emailVerificationEmailTemplate({
+        OTP: rawOtp.toString(),
+        USERNAME: user.username,
+        EXPIRY_MINUTES: VERIFICATION_CODE_EXPIRATION_TIME / 1000 / 60,
+      });
+
+      const emailRecord = await emailModel.findOneAndUpdate(
+        {
+          recipient: user._id,
+          recipientEmail: user.email,
+        },
+        {
+          $set: {
+            subject: 'Email Verification',
+            body: emailBody,
+            status: EmailStatus.PENDING,
+            sendAt: new Date(),
+            source: UserRole.USER,
+          },
+        },
+        { upsert: true, new: true },
+      );
+
+      //8. Send email
+      await sendEmailService({
+        recipient: emailRecord.recipientEmail,
+        subject: emailRecord.subject,
+        htmlTemplate: emailRecord.body,
+      });
+
+      Logger.info('OTP resent successfully');
+
+      req.flash('success', 'A new OTP has been sent to your email');
+      return res.redirect('/users/auth/verify-otp');
+    } catch (error) {
+      Logger.warn((error as Error).message);
+
+      req.flash('error', 'Something went wrong. Please try again.');
       return res.redirect('/users/auth/login');
     }
   }
@@ -299,7 +494,8 @@ class UserAuthController {
         pageTitle: 'User Login',
       });
     } catch (error) {
-      Logger.error(`${(error as Error).message}`);
+      Logger.warn(`${(error as Error).message}`);
+
       req.flash('error', (error as Error).message);
       return res.redirect('/users/auth/register');
     }
@@ -329,25 +525,29 @@ class UserAuthController {
         .findOne({ email: normalizedEmail, isEmailVerified: true, role: UserRole.USER })
         .select('+passwordHash');
       if (!user) {
-        Logger.error('User not found');
+        Logger.warn('User not found');
+
         await authRepo.createLoginRecord({
           lastLoginIp: ip,
           lastLoginUserAgent: userAgent,
           lastLoginStatus: LoginStatus.FAILED,
         });
+
         req.flash('error', 'Invalid email or password');
         return res.redirect('/users/auth/login');
       }
 
       // 2. Check user is blocked or disabled or deleted
       if (user.status !== UserStatus.ACTIVE) {
-        Logger.error('User not found');
+        Logger.warn('User not found');
+
         await authRepo.createLoginRecord({
           userId: user._id.toString(),
           lastLoginIp: ip,
           lastLoginUserAgent: userAgent,
           lastLoginStatus: LoginStatus.FAILED,
         });
+
         req.flash('error', 'Your account is not active');
         return res.redirect('/users/auth/login');
       }
@@ -358,13 +558,15 @@ class UserAuthController {
         user.passwordHash,
       );
       if (!isPasswordCompareCorrect) {
-        Logger.error('Password is incorrect');
+        Logger.warn('Password is incorrect');
+
         await authRepo.createLoginRecord({
           userId: user._id.toString(),
           lastLoginIp: ip,
           lastLoginUserAgent: userAgent,
           lastLoginStatus: LoginStatus.FAILED,
         });
+
         req.flash('error', 'Invalid email or password');
         return res.redirect('/users/auth/login');
       }
@@ -372,13 +574,15 @@ class UserAuthController {
       // 4. Generate JWT tokens
       const tokens = authHelper.signAccessTokenAndRefreshToken(user);
       if (!tokens) {
-        Logger.error('Generating JWT tokens failed');
+        Logger.warn('Generating JWT tokens failed');
+
         await authRepo.createLoginRecord({
           userId: user._id.toString(),
           lastLoginIp: ip,
           lastLoginUserAgent: userAgent,
           lastLoginStatus: LoginStatus.FAILED,
         });
+
         req.flash('error', 'Error occurred while logging in please try again');
         return res.redirect('/users/auth/login');
       }
@@ -392,7 +596,8 @@ class UserAuthController {
         userAgent,
       });
       if (!newRefreshTokenRecord) {
-        Logger.error('Storing refresh token failed');
+        Logger.warn('Storing refresh token failed');
+
         req.flash('error', 'Error occurred while logging in please try again');
         return res.redirect('/users/auth/login');
       }
@@ -407,7 +612,8 @@ class UserAuthController {
         lastLoginStatus: LoginStatus.SUCCESS,
       });
       if (!loginRecord) {
-        Logger.error('Storing login record failed');
+        Logger.warn('Storing login record failed');
+
         req.flash('error', 'Error occurred while logging in please try again');
         return res.redirect('/users/auth/login');
       }
@@ -431,7 +637,8 @@ class UserAuthController {
         })
         .redirect('/users/profile');
     } catch (error) {
-      Logger.error(`${(error as Error).message}`);
+      Logger.warn(`${(error as Error).message}`);
+
       req.flash('error', (error as Error).message);
       return res.redirect('/users/auth/forgot-password');
     }
@@ -454,7 +661,8 @@ class UserAuthController {
         pageTitle: 'User Forgot Password',
       });
     } catch (error) {
-      Logger.error(`${(error as Error).message}`);
+      Logger.warn(`${(error as Error).message}`);
+
       req.flash('error', (error as Error).message);
       return res.redirect('/users/auth/forgot-password');
     }
@@ -486,7 +694,8 @@ class UserAuthController {
         status: UserStatus.ACTIVE,
       });
       if (!user) {
-        Logger.error('User not found');
+        Logger.warn('User not found');
+
         req.flash('error', 'Invalid email or your account is not active');
         return res.redirect('/users/auth/forgot-password');
       }
@@ -494,7 +703,8 @@ class UserAuthController {
       // 2. Generate reset password token
       const rawResetPasswordToken = authHelper.generateResetPasswordSecret(user);
       if (!rawResetPasswordToken) {
-        Logger.error('Generating reset password token failed');
+        Logger.warn('Generating reset password token failed');
+
         req.flash('error', 'Error occurred while resetting password please try again');
         return res.redirect('/users/auth/forgot-password');
       }
@@ -507,7 +717,8 @@ class UserAuthController {
         verificationType: VerificationType.PASSWORD_RESET,
       });
       if (!resetPasswordTokenRecord) {
-        Logger.error('Storing reset password token failed');
+        Logger.warn('Storing reset password token failed');
+
         req.flash('error', 'Error occurred while resetting password please try again');
         return res.redirect('/users/auth/forgot-password');
       }
@@ -532,7 +743,8 @@ class UserAuthController {
         }),
       });
       if (!mailRecord) {
-        Logger.error('Storing mail data failed');
+        Logger.warn('Storing mail data failed');
+
         req.flash('error', 'Error occurred while resetting password please try again');
         return res.redirect('/users/auth/forgot-password');
       }
@@ -545,10 +757,12 @@ class UserAuthController {
       });
 
       Logger.debug('Email sent for forgot password');
+
       req.flash('success', 'Password reset email has been sent to your email');
       res.redirect('/users/auth/forgot-password');
     } catch (error) {
-      Logger.error(`${(error as Error).message}`);
+      Logger.warn(`${(error as Error).message}`);
+
       req.flash('error', (error as Error).message);
       return res.redirect('/users/auth/forgot-password');
     }
@@ -575,12 +789,21 @@ class UserAuthController {
         token: req.query.token,
       });
     } catch (error) {
-      Logger.error(`${(error as Error).message}`);
+      Logger.warn(`${(error as Error).message}`);
+
       req.flash('error', (error as Error).message);
       return res.redirect('/users/auth/reset-password');
     }
   }
 
+  /**
+   * Handles the reset password functionality for users.
+   *
+   * @param {Request} req - The incoming request.
+   * @param {Response} res - The outgoing response.
+   * @returns {Promise<Response>} - A promise that resolves with the rendered login page or redirects to the forgot password page with an error message.
+   * @throws {Error} - If any error occurs while handling the reset password functionality for users.
+   */
   async userResetPasswordHandler(
     req: Request<object, object, TUserResetPasswordDTO>,
     res: Response,
@@ -592,7 +815,8 @@ class UserAuthController {
 
       // 1. Check password and confirm password match
       if (password !== confirmPassword) {
-        Logger.error('Password and confirm password are not same');
+        Logger.warn('Password and confirm password are not same');
+
         req.flash('error', 'Password and confirm password are not same');
         return res.redirect('/users/auth/reset-password');
       }
@@ -600,7 +824,8 @@ class UserAuthController {
       // 2. Verify reset password token
       const tokenPayload = authHelper.verifyResetPasswordSecret(token);
       if (!tokenPayload?.sub) {
-        Logger.error('Reset password token is invalid or expired');
+        Logger.warn('Reset password token is invalid or expired');
+
         req.flash('error', 'Reset password token is invalid or expired');
         return res.redirect('/users/auth/reset-password');
       }
@@ -608,7 +833,8 @@ class UserAuthController {
       // 3. Hash password
       const passwordHash = await authHelper.hashPasswordHelper(password);
       if (!passwordHash) {
-        Logger.error('Hashing password failed');
+        Logger.warn('Hashing password failed');
+
         req.flash('error', 'Hashing password failed');
         return res.redirect('/users/auth/reset-password');
       }
@@ -620,7 +846,8 @@ class UserAuthController {
         { new: true },
       );
       if (!updatedUser) {
-        Logger.error('Updating user password failed');
+        Logger.warn('Updating user password failed');
+
         req.flash('error', 'Updating user password failed');
         return res.redirect('/users/auth/reset-password');
       }
@@ -635,7 +862,8 @@ class UserAuthController {
         { new: true },
       );
       if (!updatedResetPasswordTokenRecord) {
-        Logger.error('Updating reset password token record failed');
+        Logger.warn('Updating reset password token record failed');
+
         req.flash('error', 'Updating reset password token record failed');
         return res.redirect('/users/auth/reset-password');
       }
@@ -643,7 +871,8 @@ class UserAuthController {
       req.flash('success', 'Password reset successfully');
       return res.redirect('/users/auth/login');
     } catch (error) {
-      Logger.error(`${(error as Error).message}`);
+      Logger.warn(`${(error as Error).message}`);
+
       req.flash('error', (error as Error).message);
       return res.redirect('/users/auth/reset-password');
     }
@@ -652,25 +881,35 @@ class UserAuthController {
   async userLogoutHandler(req: Request, res: Response) {
     try {
       Logger.info('User logging out...');
-      const userId = req.user?.userId;
+      const userId = req.user?.userId || req.session.pendingUser?.userId;
 
-      // revoked and delete refresh token
-      const deletedRefreshTokenRecord = await refreshTokenModel.findOneAndDelete({
+      // 1.Validate user id
+      if (!userId) {
+        Logger.warn('User id not found');
+
+        req.flash('error', 'Some error occurred please try again');
+        return res.redirect('/users/profile');
+      }
+      // 2. Delete refresh token
+      const deletedRefreshTokenRecord = await refreshTokenModel.deleteMany({
         userId,
       });
       if (!deletedRefreshTokenRecord) {
-        Logger.error('Deleting refresh token record failed');
-        req.flash('error', 'Something went wrong please try again');
-        return res.redirect('/admin/auth/login');
+        Logger.warn('Deleting refresh token record failed');
+
+        req.flash('error', 'Some error occurred please try again');
+        return res.redirect('/users/profile');
       }
 
+      // 3. Clear cookies
       req.flash('success', 'Logged out successfully');
       return res
         .clearCookie('refreshToken')
         .clearCookie('accessToken')
         .redirect('/users/auth/login');
     } catch (error) {
-      Logger.error(`${(error as Error).message}`);
+      Logger.warn(`${(error as Error).message}`);
+
       req.flash('error', (error as Error).message);
       return res.redirect('/users/auth/login');
     }

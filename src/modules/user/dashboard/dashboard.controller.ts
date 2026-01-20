@@ -6,17 +6,16 @@ class UserDashboard {
     try {
       Logger.info('Getting user dashboard...');
 
+      if (!req.user) {
+        Logger.error('User not found');
+        req.flash('error', 'User not found please try again');
+        return res.redirect('/users/auth/login');
+      }
+
       return res.render('users/dashboard', {
         title: 'User | Dashboard',
         pageTitle: 'User Dashboard',
-        user: {
-          username: 'Susovan',
-          email: 'susovan@gmail',
-          avatar: {
-            url: 'https://ui-avatars.com/api/?name=Susovan&background=random&color=7FF8FF&length=1',
-          },
-          role: 'user',
-        },
+        user: req.user,
         stats: {
           publishers: 12,
           users: 340,

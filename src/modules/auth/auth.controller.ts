@@ -68,7 +68,9 @@ class AuthController {
         .status(StatusCodes.OK)
         .json(new ApiResponse(StatusCodes.OK, 'Verification email has been sent'));
     } catch (error) {
-      return next(error);
+      Logger.error(`${(error as Error).message}`);
+      req.flash('error', (error as Error).message);
+      return res.redirect('/users/auth/register');
     }
   }
 

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Icons (Font Awesome CDN for now) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+    </style>
+  </head>
+
+  <body class="bg-gray-100 min-h-screen">
+    <!-- TOAST START -->
+    <div
+  id="toast-container"
+  class="fixed top-5 right-5 z-50 space-y-3"
+>
+  <% if (success && success.length) { %>
+    <div
+      class="toast flex items-center rounded-lg bg-green-600 px-4 py-3 text-white shadow-lg"
+    >
+      <span class="text-sm font-medium"><%= success[0] %></span>
+    </div>
+  <% } %>
+
+  <% if (error && error.length) { %>
+    <div
+      class="toast flex items-center rounded-lg bg-red-600 px-4 py-3 text-white shadow-lg"
+    >
+      <span class="text-sm font-medium"><%= error[0] %></span>
+    </div>
+  <% } %>
+
+  <% if (info && info.length) { %>
+    <div
+      class="toast flex items-center rounded-lg bg-blue-600 px-4 py-3 text-white shadow-lg"
+    >
+      <span class="text-sm font-medium"><%= info[0] %></span>
+    </div>
+  <% } %>
+</div>
+
+<!-- WRAPPER -->
+    <div class="flex min-h-screen">
+      <!-- SIDEBAR  START -->
+      <aside class="w-64 bg-white shadow-lg flex flex-col justify-between">
+
+  <!-- SIDEBAR TOP START-->
+  <div class="p-6 border-b">
+  <h1 class="text-2xl font-bold text-indigo-600"><%= pageTitle || 'UserPanel' %></h1>
+</div>
+
+
+  <!-- SIDEBAR CENTER START-->
+  <!-- Navigation START -->
+    <nav class="flex-1 px-4 py-6 space-y-2">
+  <a
+    href="/users/dashboard"
+    class="block px-4 py-2 rounded-lg bg-indigo-50 text-indigo-600 font-semibold"
+  >
+    Dashboard
+  </a>
+
+  <a
+    href="/users/profile"
+    class="block px-4 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+  >
+    Profile
+  </a>
+
+  <a
+    href="/users/replies"
+    class="block px-4 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+  >
+    Replies
+  </a>
+
+  <a
+    href="/users/bookmarks"
+    class="block px-4 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+  >
+    Bookmarks
+  </a>
+</nav>
+
+
+  <!-- SIDEBAR BOTTOM START -->
+  <div class="p-4 border-t flex items-center justify-between gap-3">
+  <!-- LEFT : PROFILE IMAGE + INFO -->
+  <div class="flex items-center gap-3">
+    <!-- IMAGE WRAPPER (IMPORTANT: relative) -->
+    <div class="relative">
+      <!-- Profile Image -->
+      <img
+        src="<%= user.avatar %>"
+        alt="User Avatar"
+        class="w-10 h-10 rounded-full object-cover border"
+      />
+
+      <!-- ONLINE STATUS DOT -->
+      <span
+        class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"
+      ></span>
+    </div>
+
+    <!-- User Info -->
+    <div class="leading-tight">
+      <p class="text-sm font-semibold"><%= user.username %></p>
+      <p class="text-xs text-gray-500 truncate max-w-[140px]"><%= user.email %></p>
+      <span class="inline-block mt-1 text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded">
+        <%= user.role %>
+      </span>
+    </div>
+  </div>
+</div>
+
+</aside>
+
+
+      <!-- MAIN AREA -->
+<div class="flex-1 flex flex-col">
+        <!-- TOP BAR -->
+        <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
+        <h2 class="text-xl font-semibold text-gray-800">
+          <%= user.username.toUpperCase() %> Profile
+        </h2>
+
+        <!-- LOGOUT -->
+        <div class="relative">
+          <form action="/users/auth/logout" method="POST">
+            <button type="submit" class="text-red-500 hover:text-red-700 text-sm font-medium bg-red-100 px-2 py-1 rounded">
+              Logout
+            </button>
+          </form>
+          
+        </div>
+        </header>
+
+        <!-- MAIN CONTENT -->
+      <main class="flex-1 p-8">
+  <div class="max-w-6xl mx-auto space-y-8">
+
+    <!-- PAGE INTRO -->
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">My Profile</h1>
+      <p class="text-sm text-gray-500 mt-1">
+        Manage your personal information and account details
+      </p>
+    </div>
+
+    <!-- CONTENT GRID -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <!-- PROFILE SUMMARY -->
+      <div class="bg-white rounded-2xl border shadow-sm p-6">
+        <div class="flex flex-col items-center text-center">
+
+          <img
+            src="<%= user.avatarUrl.url || '/images/default-avatar.png' %>"
+            class="w-32 h-32 rounded-full object-cover border"
+          />
+
+          <h3 class="mt-4 text-lg font-semibold"><%= user.username %></h3>
+          <p class="text-sm text-gray-500"><%= user.email %></p>
+
+          <span class="mt-2 px-3 py-1 text-xs rounded-full bg-indigo-100 text-indigo-600">
+            <%= user.role %>
+          </span>
+
+          <% if (user.isEmailVerified) { %>
+            <span class="mt-3 text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">
+              Email Verified
+            </span>
+          <% } else { %>
+            <span class="mt-3 text-xs bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">
+              Email Not Verified
+            </span>
+          <% } %>
+
+          <form
+            action="/users/profile/avatar"
+            method="POST"
+            enctype="multipart/form-data"
+            class="w-full mt-6 space-y-3"
+          >
+            <input
+              type="file"
+              name="avatar"
+              class="w-full text-sm text-gray-500
+                     file:mr-4 file:py-2 file:px-4
+                     file:rounded-lg file:border-0
+                     file:bg-indigo-50 file:text-indigo-600
+                     hover:file:bg-indigo-100"
+            />
+
+            <button
+              class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700"
+            >
+              Update Avatar
+            </button>
+          </form>
+
+          <% if (
+            user.socialLinks?.github ||
+            user.socialLinks?.linkedin ||
+            user.socialLinks?.twitter
+          ) { %>
+
+            <div class="w-full mt-6 pt-5 border-t">
+              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                Social Profiles
+              </p>
+
+              <div class="flex justify-center gap-4">
+
+                <% if (user.socialLinks?.github) { %>
+                  <a
+                    href="<%= user.socialLinks.github %>"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="w-10 h-10 flex items-center justify-center rounded-lg border
+                           text-gray-600 hover:text-black hover:border-gray-300
+                           hover:bg-gray-50 transition"
+                    title="GitHub"
+                  >
+                    <i class="fa-brands fa-github text-lg"></i>
+                  </a>
+                <% } %>
+
+                <% if (user.socialLinks?.linkedin) { %>
+                  <a
+                    href="<%= user.socialLinks.linkedin %>"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="w-10 h-10 flex items-center justify-center rounded-lg border
+                           text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition"
+                    title="LinkedIn"
+                  >
+                    <i class="fa-brands fa-linkedin-in text-lg"></i>
+                  </a>
+                <% } %>
+
+                <% if (user.socialLinks?.twitter) { %>
+                  <a
+                    href="<%= user.socialLinks.twitter %>"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="w-10 h-10 flex items-center justify-center rounded-lg border
+                           text-sky-500 hover:bg-sky-50 hover:border-sky-200 transition"
+                    title="Twitter"
+                  >
+                    <i class="fa-brands fa-x-twitter text-lg"></i>
+                  </a>
+                <% } %>
+
+              </div>
+            </div>
+
+          <% } %>
+
+        </div>
+      </div>
+
+      <!-- PROFILE FORM -->
+      <div class="lg:col-span-2 bg-white rounded-2xl border shadow-sm">
+
+        <!-- HEADER -->
+        <div class="px-8 py-6 border-b">
+          <h2 class="text-lg font-semibold text-gray-900">
+            Personal Information
+          </h2>
+          <p class="text-sm text-gray-500 mt-1">
+            Update how your profile appears to other users
+          </p>
+        </div>
+
+        <form action="/users/profile" method="POST" class="divide-y">
+
+          <!-- USERNAME -->
+          <div class="px-8 py-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <p class="text-sm font-medium text-gray-900">Username</p>
+              <p class="text-sm text-gray-500">
+                Your public display name
+              </p>
+            </div>
+
+            <div class="md:col-span-2">
+              <input
+                type="text"
+                name="username"
+                value="<%= user.username %>"
+                class="w-full rounded-lg border-gray-300
+                       focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <!-- BIO -->
+          <div class="px-8 py-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <p class="text-sm font-medium text-gray-900">Bio</p>
+              <p class="text-sm text-gray-500">
+                Short introduction about you
+              </p>
+            </div>
+
+            <div class="md:col-span-2">
+              <textarea
+                name="bio"
+                rows="4"
+                class="w-full rounded-lg border-gray-300
+                       focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Write something about yourself..."
+              ><%= user.bio || '' %></textarea>
+            </div>
+          </div>
+
+          <!-- SOCIAL LINKS -->
+          <div class="px-8 py-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <p class="text-sm font-medium text-gray-900">Social Links</p>
+              <p class="text-sm text-gray-500">
+                Add links to your social profiles
+              </p>
+            </div>
+
+            <div class="md:col-span-2 space-y-3">
+              <input
+                type="url"
+                name="socialLinks.github"
+                value="<%= user.socialLinks?.github || '' %>"
+                placeholder="GitHub profile URL"
+                class="w-full rounded-lg border-gray-300
+                       focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <input
+                type="url"
+                name="socialLinks.linkedin"
+                value="<%= user.socialLinks?.linkedin || '' %>"
+                placeholder="LinkedIn profile URL"
+                class="w-full rounded-lg border-gray-300
+                       focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <input
+                type="url"
+                name="socialLinks.twitter"
+                value="<%= user.socialLinks?.twitter || '' %>"
+                placeholder="Twitter profile URL"
+                class="w-full rounded-lg border-gray-300
+                       focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <!-- META INFO -->
+          <div class="px-8 py-6 grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-50">
+            <div>
+              <p class="text-sm font-medium text-gray-900">Account Info</p>
+              <p class="text-sm text-gray-500">
+                Read-only system information
+              </p>
+            </div>
+
+            <div class="md:col-span-2 grid grid-cols-2 gap-6 text-sm">
+              <div>
+                <p class="text-gray-500">Status</p>
+                <p class="font-medium text-gray-900"><%= user.status %></p>
+              </div>
+              <div>
+                <p class="text-gray-500">Joined</p>
+                <p class="font-medium text-gray-900">
+                  <%= user.createdAt.toDateString() %>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ACTION -->
+          <div class="px-8 py-5 flex justify-end bg-white">
+            <button
+              class="inline-flex items-center gap-2 bg-indigo-600 text-white
+                     px-6 py-2 rounded-lg font-medium
+                     hover:bg-indigo-700 transition"
+            >
+              Save Changes
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer class="bg-white border-t px-10 py-3">
+  <div class="flex justify-between text-sm text-gray-500">
+    <p>© <%= new Date().getFullYear() %> UsersPanel. All rights reserved.</p>
+    <p class="text-xs">Logged in as <%= user.role %></p>
+  </div>
+</footer>
+
+
+      </div>
+    </div>
+
+  </body>
+</html>

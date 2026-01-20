@@ -19,7 +19,7 @@ export default function initializeApp() {
 
   // Body-parser middlewares
   app.use(express.json({ limit: REQUEST_BODY_LIMIT }));
-  app.use(express.urlencoded({ extended: true, limit: REQUEST_BODY_LIMIT }));
+  app.use(express.urlencoded({ extended: true }));
 
   // Static middleware
   app.use(express.static('public'));

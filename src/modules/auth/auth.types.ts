@@ -59,6 +59,8 @@ export interface IAuthUserShape {
   isEmailVerified: boolean;
   status: UserStatus;
   avatarUrl?: IFileShape;
+  createdAt: Date;
+  updatedAt: Date;
 }
 export interface AuthRequest<ReqBody = unknown, ReqParams = unknown, ReqQuery = unknown>
   extends Request<ReqParams, any, ReqBody, ReqQuery> {

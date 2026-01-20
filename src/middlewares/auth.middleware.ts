@@ -43,58 +43,72 @@ export const AuthGuard = async (req: AuthRequest, _res: Response, next: NextFunc
 };
 
 export const AuthGuardEJS = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  Logger.debug('Auth request from IP: ' + req.ip);
   const accessToken = req.cookies?.accessToken;
   const refreshToken = req.cookies?.refreshToken;
 
   if (!refreshToken) {
     Logger.error('No refresh token found');
     req.flash('error', 'Please login first');
-    return res.redirect('/auth/login');
+    return res.redirect('/users/auth/login');
   }
-
-  Logger.debug('Refresh token found successfully...');
 
   // Try access token
   if (accessToken) {
+    Logger.debug('Trying to verify access token...');
     // Decode access token
     const decoded = authHelper.verifyAccessToken(accessToken);
     if (!decoded) {
       Logger.error('Access token verification failed');
-      return res.redirect('/auth/login');
+      return res.redirect('/users/auth/login');
     }
-
-    Logger.debug('Access token verified successfully...');
 
     if (decoded) {
       const user = await userModel.findById(decoded.sub);
 
       if (!user) {
         Logger.error('User not found');
-        return res.redirect('/auth/login');
+        return res.redirect('/users/auth/login');
       }
 
+      Logger.debug('Access token verified successfully...');
       req.user = {
         userId: user._id.toString(),
         role: user.role,
         username: user.username,
         email: user.email,
         isEmailVerified: user.isEmailVerified,
+        avatarUrl: user.avatarUrl,
+        bio: user.bio,
+        socialLinks: user.socialLinks,
         status: user.status,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       } as IAuthUserShape;
-      res.locals.currentUser = user;
+      res.locals.currentUser = {
+        userId: user._id.toString(),
+        role: user.role,
+        username: user.username,
+        email: user.email,
+        isEmailVerified: user.isEmailVerified,
+        avatarUrl: user.avatarUrl,
+        bio: user.bio,
+        socialLinks: user.socialLinks,
+        status: user.status,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
       return next();
     }
   }
 
-  Logger.debug('Access token not found... Trying refresh token...');
+  Logger.debug('Access token not found... Trying to verify refresh token...');
   // Fallback to refresh token
   const decoded = authHelper.verifyRefreshToken(refreshToken);
   if (!decoded) {
     Logger.error('Refresh token verification failed');
-    return res.redirect('/auth/login');
+    return res.redirect('/users/auth/login');
   }
-
-  Logger.debug('Refresh token verified successfully...');
 
   // Check if refresh token is valid
   const isValidRefreshToken = await refreshTokenModel.findOne({
@@ -104,20 +118,22 @@ export const AuthGuardEJS = async (req: AuthRequest, res: Response, next: NextFu
 
   if (!isValidRefreshToken) {
     Logger.error('Invalid refresh token');
-    return res.redirect('/auth/login');
+    return res.redirect('/users/auth/login');
   }
 
   const user = await userModel.findById(isValidRefreshToken.userId);
   if (!user) {
     Logger.error('User not found');
-    return res.redirect('/auth/login');
+    return res.redirect('/users/auth/login');
   }
 
   const newAccessToken = authHelper.signAccessToken(user);
   if (!newAccessToken) {
     Logger.error('Access token signing failed');
-    return res.redirect('/auth/login');
+    return res.redirect('/users/auth/login');
   }
+
+  Logger.debug('New Access token signed successfully...');
 
   res.cookie('accessToken', newAccessToken, {
     httpOnly: true,
@@ -134,7 +150,23 @@ export const AuthGuardEJS = async (req: AuthRequest, res: Response, next: NextFu
     isEmailVerified: user.isEmailVerified,
     status: user.status,
     avatarUrl: user.avatarUrl,
+    bio: user.bio,
+    socialLinks: user.socialLinks,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
   } as IAuthUserShape;
-  res.locals.currentUser = user;
+  res.locals.currentUser = {
+    userId: user._id.toString(),
+    role: user.role,
+    username: user.username,
+    email: user.email,
+    isEmailVerified: user.isEmailVerified,
+    status: user.status,
+    avatarUrl: user.avatarUrl,
+    bio: user.bio,
+    socialLinks: user.socialLinks,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
   next();
 };

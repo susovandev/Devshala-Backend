@@ -29,6 +29,10 @@ const BaseEnvSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().optional(),
 
   SESSION_SECRET: z.string().default('session-secret'),
+
+  REDIS_HOST: z.string().default('localhost'),
+  REDIS_PORT: z.coerce.number().default(6379),
+  REDIS_PASSWORD: z.string().optional(),
 });
 
 const DatabaseEnvSchema = z.object({

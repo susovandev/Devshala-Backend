@@ -1,4 +1,3 @@
-/*
 import userRepo from '@modules/user/user.repo.js';
 import type {
   IAuthUserShape,
@@ -470,5 +469,3 @@ class AuthService {
 }
 
 export default new AuthService();
-
-*/

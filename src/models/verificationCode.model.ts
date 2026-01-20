@@ -3,15 +3,15 @@ import mongoose from 'mongoose';
 import { Schema, model, type Document } from 'mongoose';
 
 export enum VerificationType {
-  ACCOUNT_VERIFICATION = 'account_verification',
-  PASSWORD_RESET = 'password_reset',
-  EMAIL_VERIFICATION = 'email_verification',
-  EMAIL_CHANGE = 'email_change',
+  ACCOUNT_VERIFICATION = 'ACCOUNT_VERIFICATION',
+  PASSWORD_RESET = 'PASSWORD_RESET',
+  EMAIL_VERIFICATION = 'EMAIL_VERIFICATION',
+  EMAIL_CHANGE = 'EMAIL_CHANGE',
 }
 export enum VerificationStatus {
-  PENDING = 'pending',
-  EXPIRED = 'expired',
-  USED = 'used',
+  PENDING = 'PENDING',
+  EXPIRED = 'EXPIRED',
+  USED = 'USED',
 }
 export interface IVerificationCodeDocument extends Document {
   userId: mongoose.Types.ObjectId;
@@ -19,6 +19,7 @@ export interface IVerificationCodeDocument extends Document {
   verificationCodeExpiration: Date;
   verificationType: VerificationType;
   verificationStatus: VerificationStatus;
+  verifyAttempts: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +35,7 @@ const verificationCodeSchema = new Schema<IVerificationCodeDocument>(
       enum: Object.values(VerificationStatus),
       default: VerificationStatus.PENDING,
     },
+    verifyAttempts: { type: Number, default: 0 },
   },
   { timestamps: true },
 );

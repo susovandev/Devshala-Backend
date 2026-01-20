@@ -10,6 +10,7 @@ import {
   REFRESH_TOKEN_TTL,
 } from './auth.constants.js';
 import Logger from '@config/logger.js';
+import { PASSWORD_HASH_SALT_ROUNDS } from 'constants/index.js';
 
 interface IResetPasswordJwtPayload {
   sub: string;
@@ -19,7 +20,7 @@ interface IResetPasswordJwtPayload {
 class AuthHelper {
   async hashPasswordHelper(password: string): Promise<string | null> {
     Logger.debug('Hashing password...');
-    const genSalt = await bcrypt.genSalt(10);
+    const genSalt = await bcrypt.genSalt(PASSWORD_HASH_SALT_ROUNDS);
     const hashedPassword = await bcrypt.hash(password, genSalt);
     if (!hashedPassword) return null;
     return hashedPassword;
@@ -31,6 +32,21 @@ class AuthHelper {
     const isPasswordCorrect = await bcrypt.compare(password, hashedPassword);
     if (!isPasswordCorrect) return false;
     return isPasswordCorrect;
+  }
+
+  async hashVerifyOtpHelper(verifyOtp: string): Promise<string | null> {
+    Logger.debug('Hashing verification code...');
+    const genSalt = await bcrypt.genSalt(PASSWORD_HASH_SALT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(verifyOtp, genSalt);
+    if (!hashedPassword) return null;
+    return hashedPassword;
+  }
+
+  async verifyOtpHelper(verificationCode: string, verificationCodeHash: string): Promise<boolean> {
+    Logger.debug('Verifying verification code...');
+    const isVerificationCodeCorrect = await bcrypt.compare(verificationCode, verificationCodeHash);
+    if (!isVerificationCodeCorrect) return false;
+    return isVerificationCodeCorrect;
   }
 
   generateStrongRandomPassword(): string | null {
@@ -46,9 +62,11 @@ class AuthHelper {
     return password;
   }
 
-  generateRandomOtp(): number {
+  generateRandomOtp(): number | null {
     Logger.debug('Generating verification code...');
-    return Math.floor(100000 + Math.random() * 900000);
+    const verificationCode = Math.floor(100000 + Math.random() * 900000);
+    if (!verificationCode) return null;
+    return verificationCode;
   }
 
   hashVerificationCodeHelper(verificationCode: string): string | null {

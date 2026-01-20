@@ -24,7 +24,7 @@ export const RoleGuardEJS =
       const user = req.user;
       if (!user || !allowedRoles.includes(user.role as UserRole)) {
         req.flash('error', 'Access denied');
-        return res.redirect('/admin/auth/login');
+        return res.redirect('/users/auth/login');
       }
 
       next();

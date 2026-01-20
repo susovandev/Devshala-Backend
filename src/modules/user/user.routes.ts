@@ -1,27 +1,17 @@
-/*
 import { Router } from 'express';
-// import userController from './user.controller.js';
-import { AuthGuard } from '@middlewares/auth.middleware.js';
-import { upload } from '@config/multer.js';
-import { validateRequest } from '@middlewares/validation.middleware.js';
-import { updateUserPasswordSchema, updateUserProfileSchema } from './user.validation.js';
+import userAuthRoutes from './auth/auth.routes.js';
+import userProfileRoutes from './profile/profile.routes.js';
+import userDashboardRoutes from './dashboard/dashboard.routes.js';
+import userRepliesRoutes from './replies/replies.routes.js';
+import userBookmarksRoutes from './bookmarks/bookmarks.routes.js';
+import { AuthGuardEJS } from '@middlewares/auth.middleware.js';
 
 const router: Router = Router();
 
-router.use(AuthGuard);
-
-router.get('/profile', userController.getUserProfileHandler);
-router.put(
-  '/profile/update',
-  upload.single('avatar'),
-  validateRequest(updateUserProfileSchema),
-  userController.updateUserProfileHandler,
-);
-router.put(
-  '/profile/update-password',
-  validateRequest(updateUserPasswordSchema),
-  userController.updateUserPasswordHandler,
-);
+router.use('/auth', userAuthRoutes);
+router.use('/profile', AuthGuardEJS, userProfileRoutes);
+router.use('/dashboard', AuthGuardEJS, userDashboardRoutes);
+router.use('/replies', AuthGuardEJS, userRepliesRoutes);
+router.use('/bookmarks', AuthGuardEJS, userBookmarksRoutes);
 
 export default router;
-*/

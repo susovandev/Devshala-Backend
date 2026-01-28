@@ -3,9 +3,9 @@ import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { redis } from '@config/redis.js';
 
-export const registerLimiter = rateLimit({
+export const verifyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
 

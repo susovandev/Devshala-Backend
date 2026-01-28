@@ -13,6 +13,7 @@ import {
   resetPasswordSchema,
 } from 'validations/auth.validations.js';
 import { registerLimiter } from '@middlewares/rateLimit/registerLimiter.js';
+import { verifyLimiter } from '@middlewares/rateLimit/verifyLimiter.js';
 
 const router: Router = Router();
 
@@ -29,6 +30,7 @@ router.get('/verify-otp', userAuthController.getUserVerifyOtpPage);
 
 router.post(
   '/verify-otp',
+  verifyLimiter,
   validateRequest(otpValidationSchema),
   userAuthController.userVerifyOtpHandler,
 );

@@ -1,9 +1,10 @@
 import { Redis } from 'ioredis';
-import { env } from './env.js';
 
-export const redisConnection = new Redis({
-  host: env.REDIS_HOST,
-  port: env.REDIS_PORT,
-  password: env.REDIS_PASSWORD,
+const redis = new Redis({
+  host: process.env.REDIS_HOST,
+  port: Number(process.env.REDIS_PORT),
+  password: process.env.REDIS_PASSWORD,
   maxRetriesPerRequest: null,
 });
+
+export { redis };

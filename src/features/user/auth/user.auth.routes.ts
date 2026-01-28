@@ -12,12 +12,18 @@ import {
   resendOtpSchema,
   resetPasswordSchema,
 } from 'validations/auth.validations.js';
+import { registerLimiter } from '@middlewares/rateLimit/registerLimiter.js';
 
 const router: Router = Router();
 
 router.get('/register', userAuthController.getUserRegisterPage);
 
-router.post('/register', validateRequest(registerSchema), userAuthController.userRegisterHandler);
+router.post(
+  '/register',
+  registerLimiter,
+  validateRequest(registerSchema),
+  userAuthController.userRegisterHandler,
+);
 
 router.get('/verify-otp', userAuthController.getUserVerifyOtpPage);
 

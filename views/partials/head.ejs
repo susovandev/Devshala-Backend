@@ -1,0 +1,78 @@
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= title %></title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Icons (Font Awesome CDN for now) -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+  />
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+  <style>
+    .stat-card {
+      @apply bg-white rounded-xl shadow p-6;
+    }
+
+    .stat-label {
+      @apply text-sm text-gray-500;
+    }
+
+    .stat-value {
+      @apply text-2xl font-semibold text-gray-800 mt-1;
+    }
+
+    .btn-primary {
+      @apply px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700;
+    }
+
+    .btn-sm {
+      @apply px-3 py-1 bg-indigo-50 text-indigo-600 rounded text-xs hover:bg-indigo-100;
+    }
+  </style>
+  <style>
+    @keyframes toast-in {
+      from {
+        opacity: 0;
+        transform: translateX(30px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+    }
+
+    @keyframes toast-out {
+      from {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+      to {
+        opacity: 0;
+        transform: translateX(30px) scale(0.95);
+      }
+    }
+
+    .animate-toast-in {
+      animation: toast-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-toast-out {
+      animation: toast-out 0.4s ease-in forwards;
+    }
+  </style>
+</head>

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include("../partials/head.ejs", { title: "Bookmarks" }) %>
+
+<body class="bg-gray-100 min-h-screen">
+
+<%- include("../partials/toast.ejs") %>
+
+<div class="flex min-h-screen">
+
+  <!-- SIDEBAR -->
+  <%- include("./components/sidebar.ejs", { currentPath, user, pageTitle }) %>
+
+  <!-- MAIN WRAPPER -->
+  <div class="flex-1 flex flex-col">
+
+    <!-- HEADER -->
+    <%- include("./components/main-header.ejs", {
+      user,
+      totalUnreadNotifications,
+      totalNotifications,
+      notifications
+    }) %>
+
+    <!-- CONTENT -->
+    <main class="flex-1 p-6 max-w-7xl mx-auto w-full">
+
+  <!-- PAGE HEADER -->
+<div class="flex items-center justify-between mb-10">
+  <!-- Title + Subtitle -->
+  <div class="flex flex-col gap-1">
+    <h1 class="text-3xl font-semibold text-gray-900 tracking-tight">
+      Bookmarks
+    </h1>
+    <p class="text-sm text-gray-500 leading-relaxed">
+      Articles you saved to read later
+    </p>
+  </div>
+
+  <!-- Total Count Badge -->
+  <div class="flex items-center gap-2 text-sm text-gray-500">
+    <span>Total</span>
+    <span
+      id="countTotalValue"
+      class="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 font-semibold shadow-sm"
+    >
+      <%= bookmarks.totalDocs %>
+    </span>
+  </div>
+</div>
+
+
+  <!-- EMPTY STATE -->
+  <% if (!bookmarks.docs || bookmarks.docs.length === 0) { %>
+    <div class="bg-white border rounded-2xl p-16 text-center">
+      <i class="fa-regular fa-bookmark text-4xl text-indigo-500 mb-4"></i>
+      <h3 class="text-lg font-semibold text-gray-800">
+        No bookmarks yet
+      </h3>
+      <p class="text-sm text-gray-500 mt-1">
+        Save blogs to build your personal reading list
+      </p>
+    </div>
+  <% } else { %>
+
+  <!-- BOOKMARK GRID -->
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+    <% bookmarks.docs.forEach(bookmark => { %>
+      <article
+         class="bookmark-card group bg-white border rounded-2xl overflow-hidden hover:shadow-lg transition"
+  data-bookmark-id="<%= bookmark._id %>"
+      >
+
+        <!-- COVER -->
+        <a href="/blogs/<%= bookmark.blog._id %>" class="block relative">
+          <img
+            src="<%= bookmark.blog.coverImage.url %>"
+            class="h-48 w-full object-cover group-hover:scale-[1.02] transition"
+            alt="<%= bookmark.blog.title %>"
+          />
+        </a>
+
+        <!-- BODY -->
+        <div class="p-5 flex flex-col gap-4">
+
+          <!-- TITLE -->
+          <div>
+            <h3 class="text-base font-semibold text-gray-900 line-clamp-2">
+              <a href="/blogs/<%= bookmark.blog._id %>">
+                <%= bookmark.blog.title %>
+              </a>
+            </h3>
+
+            <p class="mt-2 text-sm text-gray-500 line-clamp-3">
+              <%= bookmark.blog.excerpt || bookmark.blog.content.slice(0,120) %>…
+            </p>
+          </div>
+
+          <!-- STATS -->
+          <div class="flex items-center gap-4 text-gray-500">
+
+    <!-- Views -->
+    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100">
+      <i class="fa-regular fa-eye text-gray-400"></i>
+      <span class="font-medium"><%= bookmark.blog.stats.views  || 0 %></span>
+    </div>
+
+    <!-- Likes -->
+    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-red-600">
+      <i class="fa-regular fa-heart"></i>
+      <span class="font-medium"><%= bookmark.totalLikes %></span>
+    </div>
+
+    <!-- Comments -->
+    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600">
+      <i class="fa-regular fa-comment"></i>
+      <span class="font-medium"><%= bookmark.totalComments %></span>
+    </div>
+
+    <!-- Bookmarks -->
+    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-50 text-yellow-700">
+      <i class="fa-regular fa-bookmark"></i>
+      <span class="font-medium"><%= bookmark.totalBookmarks %></span>
+    </div>
+
+  </div>
+
+
+          <!-- FOOTER -->
+          <div class="flex items-center justify-between pt-4 border-t">
+
+            <!-- AUTHOR -->
+            <div class="flex items-center gap-3">
+
+  <!-- AVATAR -->
+  <div class="relative">
+    <img
+      src="<%= bookmark.author?.avatarUrl?.url || `https://ui-avatars.com/api/?name=${bookmark.author?.username}&background=6366f1&color=fff` %>"
+      class="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-50"
+      alt="<%= bookmark.author?.username %>"
+    />
+
+    <% if (bookmark.author?.role === 'ADMIN') { %>
+      <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[10px]">
+        <i class="fa-solid fa-shield"></i>
+      </span>
+    <% } %>
+  </div>
+
+  <!-- AUTHOR INFO -->
+  <div class="flex flex-col leading-tight">
+    <div class="flex items-center gap-2">
+      <span class="text-sm font-semibold text-gray-800">
+        <%= bookmark.author?.username %>
+      </span>
+
+      <!-- ROLE BADGE -->
+      <% if (bookmark.author?.role) { %>
+        <span class="
+          px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide
+          <%= bookmark.author.role === 'ADMIN'
+            ? 'bg-indigo-100 text-indigo-700'
+            : bookmark.author.role === 'AUTHOR'
+            ? 'bg-gray-100 text-gray-700'
+            : 'bg-yellow-100 text-yellow-700'
+          %>
+        ">
+          <%= bookmark.author.role %>
+        </span>
+      <% } %>
+    </div>
+
+    <!-- DATE -->
+    <span class="text-xs text-gray-400">
+      Saved on <%= new Date(bookmark.createdAt).toDateString() %>
+    </span>
+  </div>
+
+</div>
+
+
+            <!-- ACTION -->
+            <button
+              class="unbookmark-btn text-gray-400 hover:text-red-600 transition"
+              data-blog-id="<%= bookmark._id %>"
+              title="Remove bookmark"
+            >
+              <i class="fa-solid fa-bookmark"></i>
+            </button>
+
+          </div>
+        </div>
+      </article>
+    <% }) %>
+
+  </div>
+
+  <!-- PAGINATION -->
+  <% if (bookmarks.totalPages > 1) { %>
+    <div class="mt-12 flex justify-center">
+      <nav class="flex items-center gap-1 text-sm">
+
+        <% if (bookmarks.hasPrevPage) { %>
+          <a
+            href="?page=<%= bookmarks.prevPage %>"
+            class="px-3 py-1.5 rounded-md border bg-white hover:bg-gray-50"
+          >
+            ← Prev
+          </a>
+        <% } %>
+
+        <% for (let i = 1; i <= bookmarks.totalPages; i++) { %>
+          <a
+            href="?page=<%= i %>"
+            class="px-3 py-1.5 rounded-md border
+              <%= i === bookmarks.page
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white hover:bg-gray-50'
+              %>"
+          >
+            <%= i %>
+          </a>
+        <% } %>
+
+        <% if (bookmarks.hasNextPage) { %>
+          <a
+            href="?page=<%= bookmarks.nextPage %>"
+            class="px-3 py-1.5 rounded-md border bg-white hover:bg-gray-50"
+          >
+            Next →
+          </a>
+        <% } %>
+
+      </nav>
+    </div>
+  <% } %>
+
+  <% } %>
+</main>
+
+
+    <!-- FOOTER -->
+    <%- include("./components/footer.ejs", { user }) %>
+
+  </div>
+</div>
+
+<%- include("../partials/toast-script.ejs") %>
+
+<!-- UNBOOKMARK SCRIPT -->
+<script>
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.unbookmark-btn');
+  if (!btn) return;
+
+  const bookmarkId = btn.dataset.blogId;
+  const card = btn.closest('[data-bookmark-id]');
+  if (!card) return;
+
+  // ✅ optimistic UI
+  card.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+
+  try {
+    const res = await fetch(`/users/bookmarks/${bookmarkId}/delete`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+
+    setTimeout(() => card.remove(), 200);
+
+    const countEl = document.querySelector('#countTotalValue');
+    if (countEl) {
+      countEl.textContent = Math.max(0, Number(countEl.textContent) - 1);
+    }
+
+    window.showToast?.('Bookmark removed', 'success');
+
+    // ✅ show empty state if last item removed
+    if (document.querySelectorAll('[data-bookmark-id]').length === 1) {
+      document.getElementById('bookmark-grid').innerHTML = `
+        <div class="col-span-full text-center py-16 text-gray-500">
+          <i class="fa-regular fa-bookmark text-4xl mb-4"></i>
+          <p>No bookmarks left</p>
+        </div>
+      `;
+    }
+
+  } catch (err) {
+    // rollback
+    card.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
+    window.showToast?.(err.message || 'Failed to remove bookmark', 'error');
+  }
+});
+</script>
+
+
+
+<style>
+.bookmark-card {
+  transition: opacity .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+.bookmark-card:hover {
+  transform: translateY(-4px);
+}
+</style>
+
+
+</body>
+</html>

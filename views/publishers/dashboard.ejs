@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include("../partials/head.ejs", { title: "Publisher Dashboard" }) %>
+
+
+<body class="bg-gray-100 min-h-screen">
+  <%- include("../partials/toast.ejs") %>
+
+  <div class="flex min-h-screen">
+
+    <!-- SIDEBAR -->
+  <%- include("./components/sidebar.ejs", {currentPath, publisher, pageTitle}) %>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col">
+
+      <!-- HEADER -->
+<%- include("./components/main-header.ejs", {publisher, totalUnreadNotifications, totalNotifications, notifications}) %>
+
+      <!-- KPI CARDS -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+        <div class="stat-card">
+          <p class="stat-label">Total Blogs</p>
+          <p class="stat-value"><%= stats.totalBlogs %></p>
+        </div>
+
+        <div class="stat-card">
+          <p class="stat-label">Authors</p>
+          <p class="stat-value"><%= stats.totalAuthors %></p>
+        </div>
+
+        <div class="stat-card">
+          <p class="stat-label">Pending Reviews</p>
+          <p class="stat-value text-orange-600">
+            <%= stats.pendingBlogs %>
+          </p>
+        </div>
+
+        <div class="stat-card">
+          <p class="stat-label">Total Views</p>
+          <p class="stat-value text-indigo-600">
+            <%= stats.totalViews %>
+          </p>
+        </div>
+
+      </div>
+
+      <!-- CHARTS -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  <!-- LINE CHART -->
+  <div class="bg-white rounded-xl shadow p-6 lg:col-span-2">
+    <h2 class="font-semibold text-gray-800 mb-4">
+      📈 Blog Performance
+    </h2>
+    <canvas id="blogPerformanceChart" height="120"></canvas>
+  </div>
+
+  <!-- DOUGHNUT -->
+  <div class="bg-white rounded-xl shadow p-6">
+    <h2 class="font-semibold text-gray-800 mb-4">
+      📊 Content Status
+    </h2>
+    <canvas id="blogStatusChart"></canvas>
+  </div>
+
+</div>
+
+
+      <!-- ACTION REQUIRED -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- PENDING BLOGS -->
+        <div class="bg-white rounded-xl shadow p-6">
+          <div class="flex justify-between mb-4">
+            <h2 class="font-semibold text-gray-800">
+              ⏳ Pending Blog Approvals
+            </h2>
+            <a href="/publishers/blogs?status=PENDING" class="text-sm text-indigo-600">
+              View all
+            </a>
+          </div>
+
+          <% if (pendingBlogs.length === 0) { %>
+            <p class="text-sm text-gray-500">No pending blogs 🎉</p>
+          <% } %>
+
+          <% pendingBlogs.forEach(blog => { %>
+            <div class="flex justify-between items-center py-3 border-b last:border-none">
+              <div>
+                <p class="font-medium text-gray-800 truncate max-w-xs">
+                  <%= blog.title %>
+                </p>
+                <p class="text-xs text-gray-500">
+                  by <%= blog.author.username %>
+                </p>
+              </div>
+
+              <div class="flex gap-2">
+                <a href="/publishers/blogs/<%= blog._id %>" class="btn-sm">
+                  Review
+                </a>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+
+        <!-- PENDING AUTHORS -->
+        <div class="bg-white rounded-xl shadow p-6">
+          <div class="flex justify-between mb-4">
+            <h2 class="font-semibold text-gray-800">
+              👤 Author Requests
+            </h2>
+            <a href="/publishers/author/manage" class="text-sm text-indigo-600">
+              Manage
+            </a>
+          </div>
+
+          <% if (pendingAuthors.length === 0) { %>
+            <p class="text-sm text-gray-500">No author requests</p>
+          <% } %>
+
+          <% pendingAuthors.forEach(author => { %>
+            <div class="flex items-center justify-between py-3 border-b last:border-none">
+              <div class="flex items-center gap-3">
+                <img
+                  src="<%= author.avatarUrl?.url || 'https://ui-avatars.com/api/?name=' + author.username %>"
+                  class="w-8 h-8 rounded-full"
+                />
+                <div>
+                  <p class="font-medium text-gray-800">
+                    <%= author.username %>
+                  </p>
+                  <p class="text-xs text-gray-500">Pending approval</p>
+                </div>
+              </div>
+
+              <a href="/publishers/author/manage" class="btn-sm">
+                Review
+              </a>
+            </div>
+          <% }) %>
+        </div>
+
+      </div>
+
+      <!-- TOP BLOGS -->
+      <div class="bg-white rounded-xl shadow overflow-hidden">
+        <div class="px-6 py-4 border-b">
+          <h2 class="font-semibold text-gray-800">
+            🔥 Top Performing Blogs
+          </h2>
+        </div>
+
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-600">
+            <tr>
+              <th class="px-6 py-3 text-left">Blog</th>
+              <th class="px-6 py-3 text-center">Views</th>
+              <th class="px-6 py-3 text-center">Likes</th>
+              <th class="px-6 py-3 text-center">Comments</th>
+            </tr>
+          </thead>
+
+          <tbody class="divide-y">
+            <% topBlogs.forEach(blog => { %>
+              <tr>
+                <td class="px-6 py-3">
+                  <p class="font-medium text-gray-800 truncate max-w-xs">
+                    <%= blog.title %>
+                  </p>
+                </td>
+                <td class="px-6 py-3 text-center"><%= blog.stats.views %></td>
+                <td class="px-6 py-3 text-center"><%= blog.stats.likes %></td>
+                <td class="px-6 py-3 text-center"><%= blog.stats.comments %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+  </div>
+
+  <%- include("./components/footer.ejs", {publisher}) %>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const chartData = <%- JSON.stringify(chartData || {
+    labels: [],
+    views: [],
+    likes: [],
+    comments: []
+  }) %>;
+
+  const blogStatus = <%- JSON.stringify(blogStatus || {
+    published: 0,
+    pending: 0,
+    rejected: 0
+  }) %>;
+</script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  const performanceCanvas = document.getElementById("blogPerformanceChart");
+  const statusCanvas = document.getElementById("blogStatusChart");
+
+  if (!performanceCanvas || !statusCanvas) {
+    console.error("Canvas not found");
+    return;
+  }
+
+  // LINE CHART
+  new Chart(performanceCanvas, {
+    type: "line",
+    data: {
+      labels: chartData.labels,
+      datasets: [
+        {
+          label: "Views",
+          data: chartData.views,
+          borderColor: "#4f46e5",
+          backgroundColor: "rgba(79,70,229,0.1)",
+          tension: 0.4,
+          fill: true
+        },
+        {
+          label: "Likes",
+          data: chartData.likes,
+          borderColor: "#22c55e",
+          backgroundColor: "rgba(34,197,94,0.1)",
+          tension: 0.4,
+          fill: true
+        },
+        {
+          label: "Comments",
+          data: chartData.comments,
+          borderColor: "#f97316",
+          backgroundColor: "rgba(249,115,22,0.1)",
+          tension: 0.4,
+          fill: true
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "top" }
+      }
+    }
+  });
+
+  // DOUGHNUT CHART
+  new Chart(statusCanvas, {
+    type: "doughnut",
+    data: {
+      labels: ["Published", "Pending", "Rejected"],
+      datasets: [{
+        data: [
+          blogStatus.published,
+          blogStatus.pending,
+          blogStatus.rejected
+        ],
+        backgroundColor: ["#4f46e5", "#facc15", "#ef4444"]
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "bottom" }
+      }
+    }
+  });
+
+});
+</script>
+
+
+
+
+
+    <%- include('../partials/toast-script.ejs') %>
+    <%- include("./components/icon-hover.ejs") %>
+    <%- include("./components/back-button.ejs") %>
+    <%- include("./components/real-time.ejs") %>
+</body>
+</html>

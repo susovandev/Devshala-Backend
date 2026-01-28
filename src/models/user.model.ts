@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import mongoose, { Schema, model, type Document } from 'mongoose';
+import mongoosePaginate from 'mongoose-paginate-v2';
 
 export interface IFileShape {
   publicId: string;
@@ -27,6 +28,7 @@ export enum UserStatus {
 }
 
 export interface IUserDocument extends Document {
+  _id: mongoose.Types.ObjectId;
   username: string;
   email: string;
   passwordHash: string;
@@ -51,6 +53,9 @@ export interface IUserDocument extends Document {
   disabledReason?: string;
   disabledAt?: Date;
   disabledBy?: mongoose.Types.ObjectId;
+
+  enabledAt?: Date;
+  enabledBy?: mongoose.Types.ObjectId;
 
   isDeleted: boolean;
   deletedReason?: string;
@@ -86,6 +91,7 @@ const userSchema = new Schema<IUserDocument>(
       enum: Object.values(UserStatus),
       default: UserStatus.PENDING,
     },
+
     blockedReason: { type: String },
     blockedAt: { type: Date },
     blockedBy: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -93,9 +99,12 @@ const userSchema = new Schema<IUserDocument>(
     unblockedAt: { type: Date },
     unblockedBy: { type: Schema.Types.ObjectId, ref: 'User' },
 
-    disabledBy: { type: Schema.Types.ObjectId, ref: 'User' },
     disabledReason: { type: String },
+    disabledBy: { type: Schema.Types.ObjectId, ref: 'User' },
     disabledAt: { type: Date },
+
+    enabledAt: { type: Date },
+    enabledBy: { type: Schema.Types.ObjectId, ref: 'User' },
 
     isDeleted: { type: Boolean, default: false },
     deletedReason: { type: String },
@@ -109,4 +118,5 @@ userSchema.index({ email: 1 }, { unique: true, partialFilterExpression: { isDele
 userSchema.index({ username: 1 }, { unique: true, partialFilterExpression: { isDeleted: false } });
 userSchema.index({ role: 1 });
 
-export default model<IUserDocument>('User', userSchema);
+userSchema.plugin(mongoosePaginate);
+export default model<IUserDocument, mongoose.PaginateModel<IUserDocument>>('User', userSchema);

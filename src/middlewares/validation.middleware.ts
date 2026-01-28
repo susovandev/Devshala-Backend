@@ -9,7 +9,7 @@ export const validateRequest =
 
     if (!result.success) {
       req.flash('error', result.error.issues[0].message);
-      return res.redirect(req.get('referer') || '/');
+      return res.redirect(req.originalUrl);
     }
 
     req[location] = result.data;

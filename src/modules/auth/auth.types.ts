@@ -62,8 +62,11 @@ export interface IAuthUserShape {
   createdAt: Date;
   updatedAt: Date;
 }
-export interface AuthRequest<ReqBody = unknown, ReqParams = unknown, ReqQuery = unknown>
-  extends Request<ReqParams, any, ReqBody, ReqQuery> {
+export interface AuthRequest<
+  ReqBody = unknown,
+  ReqParams = unknown,
+  ReqQuery = unknown,
+> extends Request<ReqParams, any, ReqBody, ReqQuery> {
   user?: IAuthUserShape;
 }
 

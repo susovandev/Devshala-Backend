@@ -1,0 +1,70 @@
+<!-- TOAST CONTAINER -->
+<div
+  id="toast-container"
+  class="fixed top-6 right-6 z-[9999] space-y-4"
+>
+
+  <!-- SUCCESS -->
+  <% if (success?.length) { %>
+    <div
+      class="toast relative min-w-[340px] overflow-hidden rounded-xl
+             bg-emerald-50/90 backdrop-blur
+             shadow-[0_10px_30px_rgba(0,0,0,0.12)]
+             border border-emerald-100 animate-toast-in"
+    >
+      <!-- Accent Bar -->
+      <div class="absolute left-0 top-0 h-full w-1 bg-emerald-500"></div>
+
+      <!-- Content -->
+      <div class="flex items-start gap-3 px-5 py-4">
+        <p class="text-sm font-medium text-emerald-900">
+          <%= success[0] %>
+        </p>
+      </div>
+
+      <!-- Inner Glow -->
+      <div class="absolute inset-0 ring-1 ring-inset ring-white/40 pointer-events-none"></div>
+    </div>
+  <% } %>
+
+  <!-- ERROR -->
+  <% if (error?.length) { %>
+    <div
+      class="toast relative min-w-[340px] overflow-hidden rounded-xl
+             bg-rose-50/90 backdrop-blur
+             shadow-[0_10px_30px_rgba(0,0,0,0.12)]
+             border border-rose-100 animate-toast-in"
+    >
+      <div class="absolute left-0 top-0 h-full w-1 bg-rose-500"></div>
+
+      <div class="flex items-start gap-3 px-5 py-4">
+        <p class="text-sm font-medium text-rose-900">
+          <%= error[0] %>
+        </p>
+      </div>
+
+      <div class="absolute inset-0 ring-1 ring-inset ring-white/40 pointer-events-none"></div>
+    </div>
+  <% } %>
+
+  <!-- INFO -->
+  <% if (info?.length) { %>
+    <div
+      class="toast relative min-w-[340px] overflow-hidden rounded-xl
+             bg-indigo-50/90 backdrop-blur
+             shadow-[0_10px_30px_rgba(0,0,0,0.12)]
+             border border-indigo-100 animate-toast-in"
+    >
+      <div class="absolute left-0 top-0 h-full w-1 bg-indigo-500"></div>
+
+      <div class="flex items-start gap-3 px-5 py-4">
+        <p class="text-sm font-medium text-indigo-900">
+          <%= info[0] %>
+        </p>
+      </div>
+
+      <div class="absolute inset-0 ring-1 ring-inset ring-white/40 pointer-events-none"></div>
+    </div>
+  <% } %>
+
+</div>

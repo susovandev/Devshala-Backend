@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include("../partials/head.ejs") %>
+
+  <body class="bg-gray-100 min-h-screen">
+    <!-- TOAST START -->
+    <%- include("../partials/toast.ejs") %>
+
+<!-- WRAPPER -->
+    <div class="flex min-h-screen">
+      <!-- SIDEBAR  START -->
+<%- include("./components/sidebar.ejs", {currentPath, admin, pageTitle}) %>
+
+
+      <!-- MAIN AREA -->
+<div class="flex-1 flex flex-col">
+        <!-- TOP BAR -->
+<%- include("./components/main-header.ejs", {admin, totalUnreadNotifications, totalNotifications, notifications}) %>
+
+
+        <!-- MAIN CONTENT -->
+<main class="flex-1 p-6">
+
+  <!-- PAGE HEADER -->
+  <div class="flex items-start justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-900">Edit Blog</h1>
+      <p class="text-sm text-gray-500 mt-1">
+        Review, edit content and manage approvals
+      </p>
+    </div>
+
+    <!-- STATUS -->
+    <div class="flex items-center gap-2">
+      <span class="px-3 py-1 rounded-full text-xs font-semibold
+        <%= blog.status.adminApprovalStatus === 'APPROVED'
+          ? 'bg-green-100 text-green-700'
+          : blog.status.adminApprovalStatus === 'REJECTED'
+          ? 'bg-red-100 text-red-700'
+          : 'bg-yellow-100 text-yellow-700' %>">
+        <%= blog.status.adminApprovalStatus %>
+      </span>
+
+      <% if (blog.status.adminIsPublished) { %>
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
+          Published
+        </span>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- FORM -->
+  <form
+    action="/admin/blogs/<%= blog._id %>/edit?_method=PUT"
+    method="POST"
+    enctype="multipart/form-data"
+    class="grid grid-cols-12 gap-6"
+  >
+
+    <!-- LEFT SIDE -->
+    <div class="col-span-8 space-y-6">
+
+      <!-- TITLE -->
+      <div class="bg-white rounded-xl shadow p-5">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Title
+        </label>
+        <input
+          type="text"
+          name="title"
+          value="<%= blog.title %>"
+          class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+          required
+        />
+      </div>
+
+      <!-- EXCERPT -->
+      <div class="bg-white rounded-xl shadow p-5">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Excerpt
+        </label>
+        <textarea
+          name="excerpt"
+          rows="3"
+          class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+        ><%= blog.excerpt %></textarea>
+      </div>
+
+      <!-- CONTENT -->
+      <div class="bg-white rounded-xl shadow p-5">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Content
+        </label>
+        <textarea
+          name="content"
+          rows="12"
+          class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+        ><%= blog.content %></textarea>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDE -->
+    <div class="col-span-4 space-y-6">
+
+      <!-- COVER IMAGE -->
+      <div class="bg-white rounded-xl shadow p-5">
+        <p class="text-sm font-medium text-gray-700 mb-3">Cover Image</p>
+
+        <% if (blog.coverImage?.url) { %>
+          <img
+            src="<%= blog.coverImage.url %>"
+            class="w-full h-36 object-cover rounded-lg mb-3"
+          />
+        <% } %>
+
+        <input type="file" name="coverImage" class="text-sm" />
+      </div>
+
+      <!-- CATEGORIES -->
+      <div class="bg-white rounded-xl shadow p-5">
+        <p class="text-sm font-medium text-gray-700 mb-3">Categories</p>
+        <select
+          name="categories[]"
+          multiple
+          class="w-full rounded-lg border-gray-300 text-sm"
+        >
+          <% categories.forEach(cat => { %>
+            <option
+              value="<%= cat._id %>"
+              <%= blog.categories.some(id => id.toString() === cat._id.toString()) ? 'selected' : '' %>
+            >
+              <%= cat.name %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+
+      <!-- TAGS -->
+      <div class="bg-white rounded-xl shadow p-5">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Tags
+        </label>
+        <input
+          type="text"
+          name="tags"
+          value="<%= blog.tags.join(', ') %>"
+          class="w-full rounded-lg border-gray-300 text-sm"
+        />
+      </div>
+
+      <!-- APPROVAL -->
+      <div class="bg-white rounded-xl shadow p-5 space-y-4">
+        <p class="text-sm font-medium text-gray-700">Admin Controls</p>
+
+        <label class="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="adminApproved"
+            <%= blog.status.adminApproved ? 'checked' : '' %>
+          />
+          Admin Approved
+        </label>
+
+        <label class="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="isPublished"
+            <%= blog.status.adminIsPublished ? 'checked' : '' %>
+          />
+          Publish
+        </label>
+
+        <textarea
+          name="rejectionReason"
+          placeholder="Rejection reason (optional)"
+          class="w-full rounded-lg border-gray-300 text-sm"
+        ><%= blog.status.adminRejectionReason || '' %></textarea>
+      </div>
+
+      <!-- META -->
+      <div class="bg-gray-50 rounded-xl border p-5 text-sm text-gray-600 space-y-1">
+        <p>Author: <span class="font-medium"><%= blog.authorId.username %></span></p>
+        <p>Publisher: <span class="font-medium"><%= blog.publisherId.username || 'None' %></span></p>
+        <p>Views: <span class="font-medium"><%= blog.stats.views %></span></p>
+        <p>Created: <%= new Date(blog.createdAt).toDateString() %></p>
+      </div>
+
+      <!-- SAVE -->
+      <button
+        type="submit"
+        class="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition"
+      >
+        Save Changes
+      </button>
+    </div>
+  </form>
+</main>
+
+
+
+        <!-- FOOTER -->
+<%- include("./components/footer.ejs",{admin}) %>
+
+
+      </div>
+    </div>
+      <!-- 🔔 REALTIME NOTIFICATION CONTAINER -->
+    <%- include('../partials/toast-script.ejs') %>
+    <%- include("./components/icon-hover.ejs") %>
+    <%- include("./components/back-button.ejs") %>
+    <%- include("./components/real-time.ejs") %>
+
+
+
+  </body>
+</html>

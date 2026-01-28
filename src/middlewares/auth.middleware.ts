@@ -1,113 +1,64 @@
-import type { Response, NextFunction } from 'express';
-import { UnauthorizedError } from '@libs/errors.js';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Request, Response, NextFunction } from 'express';
 import Logger from '@config/logger.js';
 import authHelper from '@modules/auth/auth.helper.js';
-import { AuthRequest, IAuthUserShape } from '@modules/auth/auth.types.js';
-import userModel from 'models/user.model.js';
+import userModel, { IUserDocument } from 'models/user.model.js';
 import refreshTokenModel from 'models/refreshToken.model.js';
 import { env } from '@config/env.js';
 import { ACCESS_TOKEN_TTL } from '@modules/auth/auth.constants.js';
 
-export const AuthGuard = async (req: AuthRequest, _res: Response, next: NextFunction) => {
-  Logger.debug(`Auth request from IP: ${req.ip}`);
+export function redirectPage(req: Request, res: Response) {
+  const segment = req.originalUrl.split('/')[1];
 
-  const accessToken = req.cookies.accessToken;
-  if (!accessToken) {
-    return next(new UnauthorizedError('Unauthorized'));
+  if (['users', 'admin', 'authors', 'publishers'].includes(segment)) {
+    return res.redirect(`/${segment}/auth/login`);
   }
 
-  try {
-    const payload = authHelper.verifyAccessToken(accessToken);
-    if (!payload) {
-      return next(new UnauthorizedError('Unauthorized'));
-    }
+  return res.redirect('/users/auth/login');
+}
+export const AuthGuardEJS = async (req: Request, res: Response, next: NextFunction) => {
+  Logger.info(`Auth request from ip: ${req.ip}`);
 
-    const user = await userModel.findById(payload.sub);
-    if (!user) {
-      return next(new UnauthorizedError('Unauthorized'));
-    }
-
-    req.user = {
-      userId: user._id.toString(),
-      role: user.role,
-      username: user.username,
-      email: user.email,
-      isEmailVerified: user.isEmailVerified,
-      status: user.status,
-    } as IAuthUserShape;
-
-    next();
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const AuthGuardEJS = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  Logger.debug('Auth request from IP: ' + req.ip);
   const accessToken = req.cookies?.accessToken;
   const refreshToken = req.cookies?.refreshToken;
 
   if (!refreshToken) {
     Logger.error('No refresh token found');
+
     req.flash('error', 'Please login first');
-    return res.redirect('/users/auth/login');
+    return redirectPage(req, res);
   }
 
   // Try access token
   if (accessToken) {
-    Logger.debug('Trying to verify access token...');
     // Decode access token
     const decoded = authHelper.verifyAccessToken(accessToken);
     if (!decoded) {
       Logger.error('Access token verification failed');
-      return res.redirect('/users/auth/login');
+      return redirectPage(req, res);
     }
 
     if (decoded) {
-      const user = await userModel.findById(decoded.sub);
-
+      const user = await userModel.findOne({
+        _id: decoded.sub,
+        isDeleted: false,
+      });
       if (!user) {
         Logger.error('User not found');
-        return res.redirect('/users/auth/login');
+        return redirectPage(req, res);
       }
 
-      Logger.debug('Access token verified successfully...');
-      req.user = {
-        userId: user._id.toString(),
-        role: user.role,
-        username: user.username,
-        email: user.email,
-        isEmailVerified: user.isEmailVerified,
-        avatarUrl: user.avatarUrl,
-        bio: user.bio,
-        socialLinks: user.socialLinks,
-        status: user.status,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      } as IAuthUserShape;
-      res.locals.currentUser = {
-        userId: user._id.toString(),
-        role: user.role,
-        username: user.username,
-        email: user.email,
-        isEmailVerified: user.isEmailVerified,
-        avatarUrl: user.avatarUrl,
-        bio: user.bio,
-        socialLinks: user.socialLinks,
-        status: user.status,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      };
+      req.user = user as IUserDocument;
+      res.locals.currentUser = user;
       return next();
     }
   }
 
-  Logger.debug('Access token not found... Trying to verify refresh token...');
   // Fallback to refresh token
   const decoded = authHelper.verifyRefreshToken(refreshToken);
   if (!decoded) {
     Logger.error('Refresh token verification failed');
-    return res.redirect('/users/auth/login');
+    return redirectPage(req, res);
   }
 
   // Check if refresh token is valid
@@ -118,22 +69,22 @@ export const AuthGuardEJS = async (req: AuthRequest, res: Response, next: NextFu
 
   if (!isValidRefreshToken) {
     Logger.error('Invalid refresh token');
-    return res.redirect('/users/auth/login');
+    return redirectPage(req, res);
   }
 
   const user = await userModel.findById(isValidRefreshToken.userId);
   if (!user) {
     Logger.error('User not found');
-    return res.redirect('/users/auth/login');
+    return redirectPage(req, res);
   }
 
   const newAccessToken = authHelper.signAccessToken(user);
   if (!newAccessToken) {
     Logger.error('Access token signing failed');
-    return res.redirect('/users/auth/login');
+    return redirectPage(req, res);
   }
 
-  Logger.debug('New Access token signed successfully...');
+  Logger.info('New Access token signed successfully...');
 
   res.cookie('accessToken', newAccessToken, {
     httpOnly: true,
@@ -142,31 +93,79 @@ export const AuthGuardEJS = async (req: AuthRequest, res: Response, next: NextFu
     maxAge: ACCESS_TOKEN_TTL,
   });
 
-  req.user = {
-    userId: user._id.toString(),
-    role: user.role,
-    username: user.username,
-    email: user.email,
-    isEmailVerified: user.isEmailVerified,
-    status: user.status,
-    avatarUrl: user.avatarUrl,
-    bio: user.bio,
-    socialLinks: user.socialLinks,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-  } as IAuthUserShape;
-  res.locals.currentUser = {
-    userId: user._id.toString(),
-    role: user.role,
-    username: user.username,
-    email: user.email,
-    isEmailVerified: user.isEmailVerified,
-    status: user.status,
-    avatarUrl: user.avatarUrl,
-    bio: user.bio,
-    socialLinks: user.socialLinks,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-  };
+  req.user = user as IUserDocument;
+  res.locals.currentUser = user; // Add user to res.locals
   next();
+};
+
+export const AttachCurrentUser = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const accessToken = req.cookies?.accessToken;
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!accessToken && !refreshToken) {
+      res.locals.currentUser = null;
+      return next();
+    }
+
+    // Try access token
+    if (accessToken) {
+      const decoded = authHelper.verifyAccessToken(accessToken);
+      if (decoded) {
+        const user = await userModel.findById(decoded.sub).lean();
+        if (user) {
+          res.locals.currentUser = user;
+          req.user = user as IUserDocument;
+          return next();
+        }
+      }
+    }
+
+    // Fallback to refresh token
+    if (refreshToken) {
+      const decoded = authHelper.verifyRefreshToken(refreshToken);
+      if (!decoded) {
+        res.locals.currentUser = null;
+        return next();
+      }
+
+      const user = await userModel.findById(decoded.sub).lean();
+      if (!user) {
+        res.locals.currentUser = null;
+        return next();
+      }
+
+      res.locals.currentUser = user;
+      req.user = user as IUserDocument;
+    }
+
+    next();
+  } catch (err: any) {
+    Logger.error(err.message);
+    res.locals.currentUser = null;
+    next();
+  }
+};
+
+export const OptionalAuthEJS = async (req: Request, res: Response, next: NextFunction) => {
+  const accessToken = req.cookies?.accessToken;
+
+  if (accessToken) {
+    try {
+      const decoded = authHelper.verifyAccessToken(accessToken);
+      if (decoded) {
+        const user = await userModel.findOne({ _id: decoded.sub, isDeleted: false });
+        if (user) {
+          req.user = user;
+          res.locals.currentUser = user;
+        }
+      }
+    } catch (err: any) {
+      Logger.error(err.message);
+      // req.user = null;
+      res.locals.currentUser = null;
+    }
+  }
+
+  next(); // always call next
 };

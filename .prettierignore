@@ -1,3 +1,7 @@
-dist
 node_modules
+dist
+build
 coverage
+.env
+.env.*
+public/uploads

@@ -1,0 +1,140 @@
+<a href="<%= blog._id %>">
+  <article
+    class="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition group"
+  >
+
+    <!-- Cover Image -->
+    <a href="/blogs/<%= blog._id %>" class="block relative">
+      <img
+        src="<%= blog.coverImage.url %>"
+        alt="<%= blog.title %>"
+        class="w-full h-48 object-cover group-hover:scale-105 transition duration-300"
+      />
+
+      <!-- Status Badge -->
+      <%
+  let finalStatus = 'PENDING';
+
+  if (
+    blog.status.adminApprovalStatus === 'APPROVED' &&
+    blog.status.publisherApprovalStatus === 'APPROVED'
+  ) {
+    finalStatus = 'APPROVED';
+  } else if (
+    blog.status.adminApprovalStatus === 'REJECTED' ||
+    blog.status.publisherApprovalStatus === 'REJECTED'
+  ) {
+    finalStatus = 'REJECTED';
+  }
+%>
+
+<span
+  class="absolute top-4 left-4 text-xs font-semibold px-3 py-1 rounded-full
+    <%= finalStatus === 'PENDING'
+      ? 'bg-yellow-100 text-yellow-700'
+      : finalStatus === 'REJECTED'
+      ? 'bg-red-100 text-red-600'
+      : 'bg-green-100 text-green-700'
+    %>"
+>
+  <%= finalStatus %>
+</span>
+
+    </a>
+
+    <!-- Content -->
+    <div class="p-6 space-y-4">
+
+      <!-- Title -->
+      <a href="/blogs/<%= blog._id %>">
+        <h2 class="text-xl font-semibold leading-snug hover:text-indigo-600 transition">
+          <%= blog.title %>
+        </h2>
+      </a>
+
+      <!-- Meta -->
+      <div class="flex items-center flex-wrap gap-4 text-sm text-gray-500">
+
+        <!-- Author -->
+        <div class="flex items-center gap-2">
+          <img
+  src="<%= blog.author?.avatarUrl?.url || `https://ui-avatars.com/api/?name=${blog.author?.username}&background=0D8ABC&color=fff` %>"
+  class="w-7 h-7 rounded-full object-cover"
+/>
+          <span class="font-medium text-gray-700">
+            <%= blog.author?.username || 'Unknown' %>
+          </span>
+        </div>
+
+        <span>•</span>
+
+        <!-- Date -->
+        <span>
+          <%= blog.publishedAt
+            ? new Date(blog.publishedAt).toDateString()
+            : 'Not published' %>
+        </span>
+
+      </div>
+
+      <!-- Excerpt -->
+      <p class="text-gray-600 text-sm leading-relaxed line-clamp-3">
+        <%= blog.excerpt %>
+      </p>
+
+      <!-- Tags -->
+      <% if (blog.tags?.length) { %>
+        <div class="flex flex-wrap gap-2">
+          <% blog.tags.slice(0, 5).forEach(tag => { %>
+            <span
+              class="text-xs px-3 py-1 rounded-full bg-indigo-50 text-indigo-600"
+            >
+              #<%= tag %>
+            </span>
+          <% }) %>
+        </div>
+      <% } %>
+
+      <!-- Footer Stats -->
+      <div class="flex items-center justify-between pt-4 border-t text-sm text-gray-500">
+
+        <div class="flex items-center gap-4 text-gray-500">
+
+    <!-- Views -->
+    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100">
+      <i class="fa-regular fa-eye text-gray-400"></i>
+      <span class="font-medium"><%= blog.stats.views %></span>
+    </div>
+
+    <!-- Likes -->
+    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-red-600">
+      <i class="fa-regular fa-heart"></i>
+      <span class="font-medium"><%= blog.likeCount %></span>
+    </div>
+
+    <!-- Comments -->
+    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600">
+      <i class="fa-regular fa-comment"></i>
+      <span class="font-medium"><%= blog.commentCount %></span>
+    </div>
+
+    <!-- Bookmarks -->
+    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-50 text-yellow-700">
+      <i class="fa-regular fa-bookmark"></i>
+      <span class="font-medium"><%= blog.bookmarkCount %></span>
+    </div>
+
+  </div>
+
+
+        <a
+          href="/blogs/<%= blog._id %>"
+          class="text-indigo-600 font-medium hover:underline"
+        >
+          Read more →
+        </a>
+
+      </div>
+    </div>
+  </article>
+</a>

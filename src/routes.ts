@@ -1,18 +1,14 @@
-import type { Application } from 'express';
-
-import uerRoutes from '@modules/user/user.routes.js';
-import userDashboardRoutes from '@modules/user/dashboard/dashboard.routes.js';
-import healthCheckRoutes from '@modules/health/health.routes.js';
-import adminRoutes from '@modules/admin/admin.routes.js';
-import publisherRoutes from '@modules/publishers/publisher.routes.js';
-import frontendRoutes from '@modules/frontend/frontend.routes.js';
+import { Application } from 'express';
+import { clientRoutes } from 'features/client/client.routes.js';
+import { userRouter } from 'features/user/user.routes.js';
+import { authorRouter } from 'features/author/author.routes.js';
+import { publisherRouter } from 'features/publisher/publisher.routes.js';
+import { adminRouter } from 'features/admin/admin.routes.js';
 
 export default function configureRoutes(app: Application) {
-  app.use('/healthcheck', healthCheckRoutes);
-  app.use('/users', uerRoutes);
-  app.use('/users/dashboard', userDashboardRoutes);
-  app.use(`/admin`, adminRoutes);
-  app.use(`/publishers`, publisherRoutes);
-
-  app.use('/', frontendRoutes);
+  app.use('/', clientRoutes);
+  app.use('/users', userRouter);
+  app.use('/authors', authorRouter);
+  app.use('/publishers', publisherRouter);
+  app.use('/admin', adminRouter);
 }

@@ -1,30 +1,15 @@
-import { Response, NextFunction } from 'express';
-import { ForbiddenError } from '@libs/errors.js';
+import { Request, Response, NextFunction } from 'express';
 import { UserRole } from 'models/user.model.js';
-import { AuthRequest } from '@modules/auth/auth.types.js';
-export const RoleGuard =
-  (...allowedRoles: UserRole[]) =>
-  (req: AuthRequest, _res: Response, next: NextFunction): void => {
-    try {
-      const user = req.user;
-      if (!user || !allowedRoles.includes(user.role as UserRole)) {
-        throw new ForbiddenError('Access denied');
-      }
-
-      next();
-    } catch (error) {
-      next(error);
-    }
-  };
+import { redirectPage } from './auth.middleware.js';
 
 export const RoleGuardEJS =
   (...allowedRoles: UserRole[]) =>
-  (req: AuthRequest, res: Response, next: NextFunction): void => {
+  (req: Request, res: Response, next: NextFunction): void => {
     try {
       const user = req.user;
       if (!user || !allowedRoles.includes(user.role as UserRole)) {
         req.flash('error', 'Access denied');
-        return res.redirect('/users/auth/login');
+        return redirectPage(req, res);
       }
 
       next();

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+  <%- include('./partials/head.ejs', { title }) %>
+
+  <body class="bg-gray-50 text-gray-800">
+    <!-- ================= HEADER ================= -->
+    <header class="sticky top-0 z-50 bg-white border-b">
+      <div class="max-w-7xl mx-auto px-6">
+        <div class="flex items-center justify-between h-16">
+          <a href="/" class="text-2xl font-bold text-indigo-600">DevShala</a>
+
+          <nav class="hidden md:flex space-x-8">
+            <a
+              href="/"
+              class="text-sm font-medium hover:text-indigo-600 <% if (currentPath === '/') { %> text-indigo-600 <% } %>"
+            >
+              Home
+            </a>
+
+            <a
+              href="/about"
+              class="text-sm font-medium hover:text-indigo-600 <% if (currentPath === '/about') { %> text-indigo-600 <% } %>"
+            >
+              About
+            </a>
+          </nav>
+
+          <div class="flex items-center space-x-4">
+            <% if (currentUser) { %>
+
+            <div class="relative">
+              <!-- Bell -->
+              <button
+                id="notification-bell"
+                type="button"
+                class="relative p-2 rounded-full hover:bg-gray-100 transition text-gray-600 hover:text-gray-900"
+              >
+                <i class="fa-regular fa-bell text-lg"></i>
+
+                <% if (totalUnreadNotifications > 0) { %>
+                <span
+                  id="notification-badge"
+                  class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-medium"
+                >
+                  <%= totalUnreadNotifications %>
+                </span>
+                <% } %>
+              </button>
+
+              <!-- DROPDOWN -->
+              <div
+                id="notification-dropdown"
+                class="hidden absolute right-0 mt-3 w-96 bg-white border rounded-xl shadow-xl z-50 overflow-hidden"
+              >
+                <!-- HEADER -->
+                <div class="px-4 py-3 border-b flex items-center justify-between">
+                  <h4 class="text-sm font-semibold text-gray-700">Notifications</h4>
+                  <span class="text-xs text-gray-500">
+                    <%= totalUnreadNotifications %> unread • <%= totalNotifications %> total
+                  </span>
+                </div>
+
+                <!-- LIST -->
+                <div id="notification-list" class="max-h-[360px] overflow-y-auto">
+                  <% if (notifications?.length) { %> <% notifications.forEach(n => { %>
+                  <a
+                    href="#"
+                    data-id="<%= n._id %>"
+                    data-read="<%= n.isRead %>"
+                    class="notification-item relative flex gap-3 px-4 py-3 border-b text-sm transition <%= n.isRead ? 'hover:bg-gray-50' : 'bg-indigo-50/60 hover:bg-indigo-50' %>"
+                  >
+                    <!-- LEFT ACCENT FOR UNREAD -->
+                    <% if (!n.isRead) { %>
+                    <span class="absolute left-0 top-0 h-full w-1 bg-indigo-500"></span>
+                    <% } %>
+
+                    <!-- ICON -->
+                    <div class="mt-1 text-indigo-600 shrink-0">
+                      <i class="fa-solid fa-circle-info"></i>
+                    </div>
+
+                    <!-- CONTENT -->
+                    <div class="flex-1">
+                      <p
+                        class="leading-relaxed <%= n.isRead ? 'text-gray-700' : 'text-gray-900 font-medium' %>"
+                      >
+                        <%= n.message %>
+                      </p>
+
+                      <span class="text-xs text-gray-400">
+                        <%= new Date(n.createdAt).toLocaleString() %>
+                      </span>
+                    </div>
+
+                    <!-- UNREAD DOT -->
+                    <% if (!n.isRead) { %>
+                    <span class="mt-2 w-2 h-2 bg-indigo-500 rounded-full"></span>
+                    <% } %>
+                  </a>
+                  <% }) %>
+
+                  <!-- READ MORE -->
+                  <% if (totalNotifications > notifications.length) { %>
+                  <a
+                    href="/authors/notifications"
+                    class="block px-4 py-3 text-center text-sm font-medium text-indigo-600 hover:bg-indigo-50 transition"
+                  >
+                    Read more →
+                  </a>
+                  <% } %> <% } else { %>
+
+                  <!-- EMPTY STATE -->
+                  <div class="px-6 py-8 text-center text-sm text-gray-500">
+                    <i class="fa-regular fa-bell-slash text-2xl mb-2 text-gray-400"></i>
+                    <p>No new notifications</p>
+                  </div>
+
+                  <% } %>
+                </div>
+              </div>
+            </div>
+
+            <div class="relative group">
+              <button
+                class="flex items-center gap-2 rounded-full px-1 py-1 hover:bg-gray-100 focus:outline-none"
+              >
+                <img
+                  src="<%= currentUser?.avatarUrl?.url || `https://ui-avatars.com/api/?name=${currentUser?.username}&background=0D8ABC&color=fff` %>"
+                  class="w-8 h-8 rounded-full object-cover"
+                />
+                <i class="fa-solid fa-chevron-down text-xs text-gray-500"></i>
+              </button>
+
+              <!-- DROPDOWN -->
+              <div
+                class="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border bg-white shadow-lg opacity-0 invisible translate-y-1 transition-all duration-150 ease-out group-hover:opacity-100 group-hover:visible group-hover:translate-y-0"
+              >
+                <a href="/users/profile" class="block px-4 py-2 text-sm hover:bg-gray-50">
+                  Profile
+                </a>
+
+                <a href="/users/dashboard" class="block px-4 py-2 text-sm hover:bg-gray-50">
+                  Dashboard
+                </a>
+
+                <div class="border-t"></div>
+
+                <form action="/users/auth/logout" method="POST">
+                  <button class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">
+                    Logout
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <% } else { %>
+            <a
+              href="/users/auth/login"
+              class="px-4 py-2 text-sm font-medium text-indigo-600 border border-indigo-600 rounded hover:bg-indigo-600 hover:text-white"
+            >
+              Login
+            </a>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </header>
+    <!-- ================= END HEADER ================= -->
+
+    <!-- ================= MAIN ================= -->
+    <main class="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <!-- ================= BLOG CONTENT ================= -->
+      <article class="lg:col-span-3 bg-white rounded-2xl shadow-sm overflow-hidden">
+        <!-- COVER IMAGE -->
+        <img
+          src="<%= blog.coverImage.url %>"
+          alt="<%= blog.title %>"
+          class="w-full h-80 object-cover"
+        />
+
+        <div class="p-8 space-y-8">
+          <!-- STATUS BADGE -->
+          <!-- Status Badge -->
+          <% if (blog?.status && !blog.status.isPublished) { %>
+          <span
+            class="absolute top-4 left-4 text-xs font-semibold px-3 py-1 rounded-full <%= blog.status.approval === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : blog.status.approval === 'REJECTED' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600' %>"
+          >
+            <%= blog.status.approval %>
+          </span>
+
+          <% } else if (blog?.status?.isPublished) { %>
+          <span
+            class="absolute top-4 left-4 text-xs font-semibold px-3 py-1 rounded-full bg-green-100 text-green-700"
+          >
+            PUBLISHED
+          </span>
+          <% } %>
+
+          <!-- TITLE -->
+          <h1 class="text-3xl font-bold leading-tight"><%= blog.title %></h1>
+
+          <!-- META -->
+          <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+            <div class="flex items-center gap-2">
+              <img
+                src="<%= blog.author?.avatarUrl.url || `https://ui-avatars.com/api/?name=${blog.author?.username}&background=0D8ABC&color=fff` %>"
+                class="w-9 h-9 rounded-full object-cover"
+              />
+              <span class="font-medium text-gray-700">
+                <%= blog.author?.username || 'Unknown Author' %>
+              </span>
+            </div>
+
+            <span>•</span>
+
+            <span>
+              <%= blog.publishedAt ? new Date(blog.publishedAt).toDateString() : 'Draft' %>
+            </span>
+
+            <div class="flex flex-wrap items-center gap-3">
+              <!-- Views -->
+              <div
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 text-xs"
+              >
+                <i class="fa-regular fa-eye"></i>
+                <span class="font-medium" id="blog-views"><%= blog.stats?.views || 0 %></span>
+              </div>
+
+              <!-- Likes -->
+              <div
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 text-red-600 text-xs"
+              >
+                <i class="fa-regular fa-heart"></i>
+                <span class="font-medium"><%= stats.totalLikes %></span>
+              </div>
+
+              <!-- Comments -->
+              <div
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-600 text-xs"
+              >
+                <i class="fa-regular fa-comment-dots"></i>
+                <span class="font-medium"><%= stats.totalComments %></span>
+              </div>
+
+              <!-- Bookmarks -->
+              <div
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-50 text-yellow-700 text-xs"
+              >
+                <i class="fa-regular fa-bookmark"></i>
+                <span class="font-medium"><%= stats.totalBookmarks %></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAGS -->
+          <% if (blog.tags?.length) { %>
+          <div class="flex flex-wrap gap-2">
+            <% blog.tags.forEach(tag => { %>
+            <a
+              href="/?tag=<%= encodeURIComponent(tag) %>"
+              class="text-xs px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+            >
+              #<%= tag %>
+            </a>
+            <% }) %>
+          </div>
+          <% } %>
+
+          <!-- LIKE / BOOKMARK ACTIONS -->
+          <div class="flex items-center gap-4 pt-4">
+            <!-- LIKE BUTTON -->
+            <form action="/blogs/<%= blog._id %>/like" method="POST">
+              <button
+                type="submit"
+                class="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-red-50"
+              >
+                <i class="fa-<%= isLiked ? 'solid' : 'regular' %> fa-heart text-red-600"></i>
+                <span class="text-sm font-medium"><%= stats.totalLikes %></span>
+              </button>
+            </form>
+
+            <!-- BOOKMARK BUTTON -->
+            <form action="/blogs/<%= blog._id %>/bookmark" method="POST">
+              <button
+                type="submit"
+                class="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-indigo-50"
+              >
+                <i
+                  class="fa-<%= isBookmarked ? 'solid' : 'regular' %> fa-bookmark text-indigo-600"
+                ></i>
+                <span class="text-sm font-medium"><%= isBookmarked ? 'Saved' : 'Save' %></span>
+              </button>
+            </form>
+          </div>
+
+          <hr />
+
+          <!-- BLOG CONTENT -->
+          <div class="prose prose-indigo max-w-none"><%- blog.content %></div>
+
+          <!-- ================= COMMENTS ================= -->
+          <section class="pt-10">
+            <h3 class="text-xl font-semibold mb-4">Comments (<%= stats.totalComments %>)</h3>
+
+            <% if (user) { %>
+            <form method="POST" action="/blogs/<%= blog._id %>/comments" class="mb-6">
+              <textarea
+                name="content"
+                rows="4"
+                required
+                placeholder="Write your comment..."
+                class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-500"
+              ></textarea>
+
+              <button
+                type="submit"
+                class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                Post Comment
+              </button>
+            </form>
+            <% } else { %>
+            <p class="text-sm text-gray-500">
+              <a href="/users/auth/login" class="text-indigo-600 underline">Login</a>
+              to write a comment
+            </p>
+            <% } %>
+
+            <!-- COMMENT LIST -->
+            <div class="space-y-4">
+              <% comments.forEach(comment => { %>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="flex items-center gap-2 text-sm text-gray-600">
+                  <img
+                    src="<%= comment.avatar || `https://ui-avatars.com/api/?name=${comment.username}&background=0D8ABC&color=fff` %>"
+                    class="w-6 h-6 rounded-full"
+                  />
+                  <span class="font-medium"><%= comment.username %></span>
+                  <span>• <%= comment.createdAt %></span>
+                  <span class="flex items-center gap-1 text-sm">
+                    •
+                    <span
+                      class="px-2 py-0.5 rounded-full font-medium text-xs <% if (comment.role === 'ADMIN') { %> bg-indigo-100 text-indigo-700 <% } else if (comment.role === 'AUTHOR') { %> bg-gray-100 text-gray-700 <% } else if (comment.role === 'PUBLISHER') { %> bg-yellow-100 text-yellow-700 <% } else { %> bg-slate-100 text-slate-600 <% } %>"
+                    >
+                      <%= comment.role %>
+                    </span>
+                  </span>
+                </div>
+
+                <p class="mt-2 text-sm text-gray-700"><%= comment.content %></p>
+              </div>
+              <% }) %>
+            </div>
+          </section>
+        </div>
+      </article>
+
+      <!-- ================= SIDEBAR ================= -->
+      <aside class="space-y-6">
+        <!-- AUTHOR CARD -->
+        <div class="bg-white p-6 rounded-xl shadow-sm">
+          <div class="flex items-center gap-4">
+            <img
+              src="<%= blog.author?.avatarUrl?.url || '/images/default-avatar.png' %>"
+              class="w-14 h-14 rounded-full"
+            />
+            <div>
+              <h3 class="font-semibold"><%= blog.author?.username %></h3>
+              <p class="text-sm text-gray-500">Author @ DevShala</p>
+            </div>
+          </div>
+
+          <p class="text-sm text-gray-600 mt-4">
+            <%=blog.author.bio || 'Writing about backend engineering, system design & scalable
+            APIs.' %>
+          </p>
+        </div>
+
+        <!-- RECENT BLOGS -->
+        <div class="bg-white p-6 rounded-xl shadow-sm">
+          <h3 class="font-semibold mb-4">Recent Blogs</h3>
+          <ul class="space-y-3">
+            <% recentBlogs.forEach(rb => { %>
+            <li>
+              <a href="/blogs/<%= rb._id %>" class="text-sm font-medium hover:text-indigo-600">
+                <%= rb.title %>
+              </a>
+            </li>
+            <% }) %>
+          </ul>
+        </div>
+      </aside>
+    </main>
+
+    <!-- ================= FOOTER ================= -->
+    <%- include('./partials/footer.ejs') %>
+
+    <!-- ================= CLIENT JS ================= -->
+    <script>
+      const likeBtn = document.getElementById('likeBtn');
+      const bookmarkBtn = document.getElementById('bookmarkBtn');
+
+      // LIKE
+      likeBtn?.addEventListener('click', async () => {
+        const blogId = likeBtn.dataset.blogId;
+        const res = await fetch(`/api/blogs/${blogId}/like`, { method: 'POST' });
+        const data = await res.json();
+
+        const likeIcon = document.getElementById('likeIcon');
+        const likeCount = document.getElementById('likeCount');
+
+        likeIcon.className = data.liked
+          ? 'fa-solid fa-heart text-red-600'
+          : 'fa-regular fa-heart text-red-600';
+
+        likeCount.textContent = data.likes;
+      });
+
+      // BOOKMARK
+      bookmarkBtn?.addEventListener('click', async () => {
+        const blogId = bookmarkBtn.dataset.blogId;
+        const res = await fetch(`/api/blogs/${blogId}/bookmark`, { method: 'POST' });
+        const data = await res.json();
+
+        const bookmarkIcon = document.getElementById('bookmarkIcon');
+        const bookmarkText = bookmarkBtn.querySelector('span');
+
+        bookmarkIcon.className = data.bookmarked
+          ? 'fa-solid fa-bookmark text-indigo-600'
+          : 'fa-regular fa-bookmark text-indigo-600';
+
+        bookmarkText.textContent = data.bookmarked ? 'Saved' : 'Save';
+      });
+    </script>
+
+    // Subscribe to blog views
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io('http://localhost:5555');
+      const blogId = '<%= blog._id %>';
+      const sessionId = '<%= sessionID %>'; // pass req.sessionID from Express route
+
+      // Emit only once per tab using sessionStorage
+      if (!sessionStorage.getItem(`viewed-${blogId}`)) {
+        socket.emit('blogViewed', { blogId, sessionId });
+        sessionStorage.setItem(`viewed-${blogId}`, 'true');
+      }
+
+      // Listen for real-time updates
+      socket.on('updateViews', (data) => {
+        if (data.blogId === blogId) {
+          const viewsSpan = document.getElementById('blog-views');
+          if (viewsSpan) viewsSpan.textContent = data.views;
+        }
+      });
+
+      socket.on('connect', () => console.log('Socket connected:', socket.id));
+      socket.on('connect_error', (err) => console.error('Socket error:', err));
+    </script>
+  </body>
+</html>

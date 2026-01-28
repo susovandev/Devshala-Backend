@@ -1,0 +1,13 @@
+<script>
+  const bell = document.getElementById('notification-bell');
+  const dropdown = document.getElementById('notification-dropdown');
+
+  bell.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle('hidden');
+  });
+
+  document.addEventListener('click', () => {
+    dropdown.classList.add('hidden');
+  });
+</script>

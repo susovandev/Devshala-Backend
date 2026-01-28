@@ -1,0 +1,40 @@
+<div class="p-4 border-t flex items-center justify-between gap-3">
+  <!-- LEFT : PROFILE IMAGE + INFO -->
+  <div class="flex items-center gap-3">
+    <!-- IMAGE WRAPPER (IMPORTANT: relative) -->
+    <div class="relative">
+      <!-- Profile Image -->
+      <img
+        src="<%= publisher.avatarUrl.url || 'https://ui-avatars.com/api/?name=' + publisher.username + '&background=0D8ABC&color=fff' %>"
+        alt="Admin Avatar"
+        class="w-10 h-10 rounded-full object-cover border"
+      />
+
+      <!-- ONLINE STATUS DOT -->
+      <span
+        class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"
+      ></span>
+    </div>
+
+    <!-- Admin Info -->
+    <div class="leading-tight">
+      <p class="text-sm font-semibold"><%= publisher.username %></p>
+      <p class="text-xs text-gray-500 truncate max-w-[140px]">
+        <%= publisher.email.slice(0, 12).concat('...') %>
+      </p>
+      <span class="inline-block mt-1 text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded">
+        <%= publisher.role %>
+      </span>
+    </div>
+  </div>
+
+  <!-- RIGHT : LOGOUT -->
+  <form action="/publishers/auth/logout" method="POST">
+    <button
+      type="submit"
+      class="text-red-500 hover:text-red-700 text-sm font-medium bg-red-100 px-2 py-1 rounded"
+    >
+      Logout
+    </button>
+  </form>
+</div>

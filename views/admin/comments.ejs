@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include("../partials/head.ejs") %>
+
+  <body class="bg-gray-100 min-h-screen">
+    <!-- TOAST START -->
+    <%- include("../partials/toast.ejs") %>
+
+<!-- WRAPPER -->
+    <div class="flex min-h-screen">
+      <!-- SIDEBAR  START -->
+<%- include("./components/sidebar.ejs", {currentPath, admin, pageTitle}) %>
+
+
+      <!-- MAIN AREA -->
+<div class="flex-1 flex flex-col">
+        <!-- TOP BAR -->
+<%- include("./components/main-header.ejs", {admin, totalUnreadNotifications, totalNotifications, notifications}) %>
+
+
+        <!-- MAIN CONTENT -->
+<main class="flex-1 p-6 max-w-7xl mx-auto w-full">
+  <div class="flex items-center justify-between mb-8">
+  <div>
+    <h1 class="text-2xl font-semibold text-gray-900">
+      Comment Moderation
+    </h1>
+    <p class="text-sm text-gray-500 mt-1">
+      Review, block, remove or restore user comments
+    </p>
+  </div>
+
+  <div class="text-sm text-gray-500">
+    Total
+    <span class="ml-1 px-2 py-0.5 rounded-md bg-gray-100 text-gray-800 font-medium">
+      <%= comments.totalDocs %>
+    </span>
+  </div>
+</div>
+<% if (!comments.docs || comments.docs.length === 0) { %>
+  <div class="bg-white rounded-2xl border p-12 text-center">
+    <div class="w-14 h-14 mx-auto flex items-center justify-center rounded-full bg-indigo-50 text-indigo-600 mb-4">
+      <i class="fa-regular fa-comment-dots text-2xl"></i>
+    </div>
+    <h3 class="text-lg font-semibold text-gray-800">
+      No comments found
+    </h3>
+    <p class="text-sm text-gray-500 mt-1">
+      All comments are clean. Nothing to moderate right now.
+    </p>
+  </div>
+<% } else { %>
+<div class="space-y-6">
+
+<% comments.docs.forEach(comment => { %>
+  <div class="bg-white rounded-xl border shadow-sm p-6 space-y-4">
+
+    <!-- USER + STATUS -->
+    <div class="flex items-start justify-between">
+
+      <div class="flex items-center gap-3">
+        <img
+          src="<%= comment.user.avatarUrl?.url || `https://ui-avatars.com/api/?name=${comment.user.username}` %>"
+          class="w-10 h-10 rounded-full object-cover"
+        />
+
+        <div>
+          <p class="text-sm font-medium text-gray-800 flex items-center gap-2">
+            <%= comment.user.username %>
+
+            <% if (comment.user.role === 'ADMIN') { %>
+              <span class="px-2 py-0.5 text-xs rounded bg-indigo-50 text-indigo-600">Admin</span>
+            <% } else if (comment.user.role === 'AUTHOR') { %>
+              <span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600">Author</span>
+            <% } else { %>
+              <span class="px-2 py-0.5 text-xs rounded bg-yellow-50 text-yellow-700">User</span>
+            <% } %>
+          </p>
+
+          <p class="text-xs text-gray-400">
+            <%= new Date(comment.createdAt).toLocaleString() %>
+          </p>
+        </div>
+      </div>
+
+      <!-- STATUS BADGE -->
+      <span class="
+        px-3 py-1 rounded-full text-xs font-medium
+        <%= comment.status === 'ACTIVE'
+          ? 'bg-green-50 text-green-700'
+          : comment.status === 'BLOCKED'
+          ? 'bg-yellow-50 text-yellow-700'
+          : 'bg-red-50 text-red-700' %>
+      ">
+        <%= comment.status %>
+      </span>
+
+    </div>
+
+    <!-- COMMENT CONTENT -->
+    <p class="text-sm text-gray-700 leading-relaxed">
+      <%= comment.content %>
+    </p>
+
+    <!-- MODERATION INFO -->
+    <% if (comment.moderation?.reason) { %>
+      <div class="bg-gray-50 border-l-4 border-indigo-500 p-4 rounded">
+        <p class="text-xs text-gray-500 mb-1">Moderation reason</p>
+        <p class="text-sm text-gray-700">
+          <%= comment.moderation.reason %>
+        </p>
+      </div>
+    <% } %>
+
+    <!-- ACTIONS -->
+    <div class="flex items-center gap-3 pt-4 border-t">
+
+      <select
+        class="comment-status-select px-3 py-2 rounded-lg border text-sm"
+        data-id="<%= comment._id %>"
+      >
+        <option value="">Change status</option>
+        <option value="ACTIVE">Restore</option>
+        <option value="BLOCKED">Block</option>
+        <option value="REMOVED">Remove</option>
+      </select>
+
+      <button
+        class="open-reason-modal text-sm text-indigo-600 hover:underline"
+        data-id="<%= comment._id %>"
+      >
+        Add / Update reason
+      </button>
+
+    </div>
+
+  </div>
+<% }) %>
+
+</div>
+<% } %>
+<div class="flex justify-center gap-2 mt-10">
+
+  <% if (comments.hasPrevPage) { %>
+    <a href="?page=<%= comments.prevPage %>"
+       class="px-3 py-2 border rounded hover:bg-gray-100">
+      Prev
+    </a>
+  <% } %>
+
+  <% for (let i = 1; i <= comments.totalPages; i++) { %>
+    <a
+      href="?page=<%= i %>"
+      class="px-3 py-2 border rounded
+      <%= comments.page === i ? 'bg-indigo-600 text-white' : 'hover:bg-gray-100' %>">
+      <%= i %>
+    </a>
+  <% } %>
+
+  <% if (comments.hasNextPage) { %>
+    <a href="?page=<%= comments.nextPage %>"
+       class="px-3 py-2 border rounded hover:bg-gray-100">
+      Next
+    </a>
+  <% } %>
+
+</div>
+</main>
+
+<div id="reasonModal" class="fixed inset-0 hidden bg-black/40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-xl w-full max-w-md p-6 space-y-4">
+    <h3 class="text-lg font-semibold">Moderation Reason</h3>
+
+    <textarea
+      id="moderationReason"
+      class="w-full border rounded-lg p-3 text-sm"
+      placeholder="Explain why this comment is being moderated..."
+      rows="4"
+    ></textarea>
+
+    <div class="flex justify-end gap-3">
+      <button onclick="closeModal()" class="text-sm text-gray-500">Cancel</button>
+      <button id="submitReason" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">
+        Confirm
+      </button>
+    </div>
+  </div>
+</div>
+
+
+
+        <!-- FOOTER -->
+<%- include("./components/footer.ejs",{admin}) %>
+
+
+<script>
+let selectedCommentId = null;
+let selectedStatus = null;
+
+document.addEventListener('change', e => {
+  if (!e.target.classList.contains('comment-action')) return;
+  selectedCommentId = e.target.dataset.id;
+  selectedStatus = e.target.value;
+});
+
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('open-reason-modal')) {
+    selectedCommentId = e.target.dataset.id;
+    document.getElementById('reasonModal').classList.remove('hidden');
+  }
+});
+
+document.getElementById('submitReason').addEventListener('click', async () => {
+  const reason = document.getElementById('moderationReason').value;
+
+  await fetch(`/admin/comments/${selectedCommentId}/moderate`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: selectedStatus, reason })
+  });
+
+  location.reload();
+});
+
+function closeModal() {
+  document.getElementById('reasonModal').classList.add('hidden');
+}
+</script>
+
+
+
+      </div>
+    </div>
+      <!-- 🔔 REALTIME NOTIFICATION CONTAINER -->
+    <%- include('../partials/toast-script.ejs') %>
+    <%- include("./components/icon-hover.ejs") %>
+    <%- include("./components/back-button.ejs") %>
+    <%- include("./components/real-time.ejs") %>
+
+
+
+  </body>
+</html>

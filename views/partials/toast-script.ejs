@@ -1,0 +1,19 @@
+<!-- TOAST SCRIPT -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const toasts = document.querySelectorAll('.toast');
+
+    toasts.forEach((toast, index) => {
+      // Stagger animation
+      toast.style.animationDelay = `${index * 120}ms`;
+
+      // Auto dismiss
+      setTimeout(() => {
+        toast.classList.remove('animate-toast-in');
+        toast.classList.add('animate-toast-out');
+
+        setTimeout(() => toast.remove(), 600);
+      }, 4000);
+    });
+  });
+</script>

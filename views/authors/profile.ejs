@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include("../partials/head.ejs") %>
+
+
+<body class="bg-gray-100 min-h-screen">
+  <%- include("../partials/toast.ejs") %>
+  <div class="flex min-h-screen">
+
+    <!-- SIDEBAR -->
+  <%- include("./components/sidebar.ejs", {currentPath, author, pageTitle}) %>
+
+
+    <!-- MAIN AREA -->
+    <div class="flex-1 flex flex-col">
+
+      <!-- HEADER -->
+<%- include("./components/main-header.ejs", {author, totalUnreadNotifications, totalNotifications, notifications}) %>
+
+
+      <!-- MAIN CONTENT -->
+      <main class="flex-1 p-8">
+  <div class="max-w-6xl mx-auto space-y-8">
+
+    <!-- PAGE INTRO -->
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">My Profile</h1>
+      <p class="text-sm text-gray-500 mt-1">
+        Manage your personal information and account details
+      </p>
+    </div>
+
+    <!-- CONTENT GRID -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <!-- PROFILE SUMMARY -->
+      <div class="bg-white rounded-2xl border shadow-sm p-6">
+        <div class="flex flex-col items-center text-center">
+
+          <img
+            src="<%= author.avatarUrl.url || 'https://ui-avatars.com/api/?name=' + author.username + '&background=0D8ABC&color=fff' %>"
+            class="w-32 h-32 rounded-full object-cover border"
+          />
+
+          <h3 class="mt-4 text-lg font-semibold"><%= author.username %></h3>
+          <p class="text-sm text-gray-500"><%= author.email %></p>
+
+          <span class="mt-2 px-3 py-1 text-xs rounded-full bg-indigo-100 text-indigo-600">
+            <%= author.role %>
+          </span>
+
+          <% if (author.isEmailVerified) { %>
+            <span class="mt-3 text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">
+              Email Verified
+            </span>
+          <% } else { %>
+            <span class="mt-3 text-xs bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">
+              Email Not Verified
+            </span>
+          <% } %>
+
+          <form
+            action="/authors/profile/avatar"
+            method="POST"
+            enctype="multipart/form-data"
+            class="w-full mt-6 space-y-3"
+          >
+            <input
+              type="file"
+              name="avatar"
+              class="w-full text-sm text-gray-500
+                     file:mr-4 file:py-2 file:px-4
+                     file:rounded-lg file:border-0
+                     file:bg-indigo-50 file:text-indigo-600
+                     hover:file:bg-indigo-100"
+            />
+
+            <button
+              class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700"
+            >
+              Update Avatar
+            </button>
+          </form>
+
+          <% if (
+            author.socialLinks?.github ||
+            author.socialLinks?.linkedin ||
+            author.socialLinks?.twitter
+          ) { %>
+
+            <div class="w-full mt-6 pt-5 border-t">
+              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                Social Profiles
+              </p>
+
+              <div class="flex justify-center gap-4">
+
+                <% if (author.socialLinks?.github) { %>
+                  <a
+                    href="<%= author.socialLinks.github %>"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="w-10 h-10 flex items-center justify-center rounded-lg border
+                           text-gray-600 hover:text-black hover:border-gray-300
+                           hover:bg-gray-50 transition"
+                    title="GitHub"
+                  >
+                    <i class="fa-brands fa-github text-lg"></i>
+                  </a>
+                <% } %>
+
+                <% if (author.socialLinks?.linkedin) { %>
+                  <a
+                    href="<%= author.socialLinks.linkedin %>"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="w-10 h-10 flex items-center justify-center rounded-lg border
+                           text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition"
+                    title="LinkedIn"
+                  >
+                    <i class="fa-brands fa-linkedin-in text-lg"></i>
+                  </a>
+                <% } %>
+
+                <% if (author.socialLinks?.twitter) { %>
+                  <a
+                    href="<%= author.socialLinks.twitter %>"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="w-10 h-10 flex items-center justify-center rounded-lg border
+                           text-sky-500 hover:bg-sky-50 hover:border-sky-200 transition"
+                    title="Twitter"
+                  >
+                    <i class="fa-brands fa-x-twitter text-lg"></i>
+                  </a>
+                <% } %>
+
+              </div>
+            </div>
+
+          <% } %>
+
+        </div>
+      </div>
+
+      <!-- PROFILE FORM -->
+<div class="lg:col-span-2 space-y-8">
+
+  <!-- PERSONAL INFO CARD -->
+  <div class="bg-white rounded-2xl border shadow-sm">
+
+    <!-- HEADER -->
+    <div class="px-8 py-6 border-b">
+      <h2 class="text-lg font-semibold text-gray-900">
+        Personal Information
+      </h2>
+      <p class="text-sm text-gray-500 mt-1">
+        Update your public profile details
+      </p>
+    </div>
+
+    <form action="/authors/profile" method="POST" class="px-8 py-6 space-y-6">
+
+      <!-- USERNAME -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Username
+        </label>
+
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+            <i class="fa-solid fa-user"></i>
+          </span>
+
+          <input
+            type="text"
+            name="username"
+            value="<%= author.username %>"
+            class="w-full pl-10 pr-4 py-2.5 rounded-xl
+                   bg-gray-50 border border-gray-200
+                   text-sm
+                   focus:ring-2 focus:ring-indigo-500
+                   focus:border-indigo-500"
+          />
+        </div>
+      </div>
+
+      <!-- BIO -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Bio
+        </label>
+
+        <textarea
+          name="bio"
+          rows="4"
+          placeholder="Write a short introduction about yourself..."
+          class="w-full px-4 py-3 rounded-xl
+                 bg-gray-50 border border-gray-200
+                 text-sm resize-none
+                 focus:ring-2 focus:ring-indigo-500
+                 focus:border-indigo-500"
+        ><%= author.bio || '' %></textarea>
+      </div>
+
+      <!-- SOCIAL LINKS -->
+      <div class="space-y-4">
+        <p class="text-sm font-medium text-gray-900">Social Profiles</p>
+
+        <!-- GitHub -->
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+            <i class="fa-brands fa-github"></i>
+          </span>
+
+          <input
+            type="url"
+            name="socialLinks.github"
+            value="<%= author.socialLinks?.github || '' %>"
+            placeholder="GitHub profile URL"
+            class="w-full pl-10 pr-4 py-2.5 rounded-xl
+                   bg-gray-50 border border-gray-200
+                   text-sm
+                   focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        <!-- LinkedIn -->
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-blue-500">
+            <i class="fa-brands fa-linkedin"></i>
+          </span>
+
+          <input
+            type="url"
+            name="socialLinks.linkedin"
+            value="<%= author.socialLinks?.linkedin || '' %>"
+            placeholder="LinkedIn profile URL"
+            class="w-full pl-10 pr-4 py-2.5 rounded-xl
+                   bg-gray-50 border border-gray-200
+                   text-sm
+                   focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        <!-- Twitter -->
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-sky-500">
+            <i class="fa-brands fa-x-twitter"></i>
+          </span>
+
+          <input
+            type="url"
+            name="socialLinks.twitter"
+            value="<%= author.socialLinks?.twitter || '' %>"
+            placeholder="Twitter / X profile URL"
+            class="w-full pl-10 pr-4 py-2.5 rounded-xl
+                   bg-gray-50 border border-gray-200
+                   text-sm
+                   focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+      </div>
+
+      <!-- ACTION -->
+      <div class="flex justify-end pt-4">
+        <button
+          class="inline-flex items-center gap-2
+                 bg-indigo-600 text-white
+                 px-6 py-2.5 rounded-xl
+                 text-sm font-medium
+                 hover:bg-indigo-700 transition"
+        >
+          <i class="fa-solid fa-floppy-disk"></i>
+          Save Changes
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- ACCOUNT INFO CARD -->
+  <div class="bg-white rounded-2xl border shadow-sm">
+    <div class="px-8 py-6 border-b">
+      <h2 class="text-sm font-semibold text-gray-900">
+        Account Information
+      </h2>
+    </div>
+
+    <div class="px-8 py-4 grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <p class="text-gray-500">Status</p>
+        <p class="font-medium text-gray-900"><%= author.status %></p>
+      </div>
+
+      <div>
+        <p class="text-gray-500">Joined</p>
+        <p class="font-medium text-gray-900">
+          <%= author.createdAt.toDateString() %>
+        </p>
+      </div>
+    </div>
+  </div>
+
+
+<!-- SECURITY SETTINGS CARD -->
+<div class="bg-white rounded-2xl border shadow-sm">
+
+  <!-- HEADER -->
+  <div class="px-8 py-6 border-b">
+    <h2 class="text-lg font-semibold text-gray-900">
+      Security
+    </h2>
+    <p class="text-sm text-gray-500 mt-1">
+      Manage your password and account security
+    </p>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="px-8 py-6 flex items-center justify-between">
+
+    <!-- LEFT -->
+    <div class="flex items-start gap-4">
+      <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+
+      <div>
+        <p class="text-sm font-medium text-gray-900">
+          Password
+        </p>
+        <p class="text-sm text-gray-500">
+          Last updated: 
+          <%= author.passwordUpdatedAt 
+              ? author.passwordUpdatedAt.toDateString() 
+              : 'Never' %>
+        </p>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <a
+      href="/authors/profile/password"
+      class="inline-flex items-center gap-2
+             bg-gray-100 hover:bg-gray-200
+             text-gray-700
+             px-4 py-2 rounded-xl
+             text-sm font-medium
+             transition"
+    >
+      Update Password
+      <i class="fa-solid fa-arrow-right"></i>
+    </a>
+
+  </div>
+
+</div>
+
+
+
+</div>
+
+
+    </div>
+  </div>
+</main>
+
+<%- include("./components/footer.ejs", {author}) %>
+
+    </div>
+  </div>
+    <%- include('../partials/toast-script.ejs') %>
+    <%- include("./components/icon-hover.ejs") %>
+    <%- include("./components/back-button.ejs") %>
+    <%- include("./components/real-time.ejs") %>
+
+
+
+</body>
+</html>

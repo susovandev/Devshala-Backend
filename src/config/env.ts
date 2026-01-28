@@ -10,7 +10,7 @@ const BaseEnvSchema = z.object({
   API_VERSION: z.string().default('1.0.0'),
   SUPPORT_EMAIL: z.string().default('FgM5j@example.com'),
 
-  CLIENT_DEVELOPMENT_URL: z.string().default('http://localhost:3000'),
+  CLIENT_URL: z.string().default('http://localhost:3000'),
   CLIENT_PRODUCTION_URL: z.string().default('http://localhost:3001'),
 
   MAIL_SERVICE: z.string().default('gmail'),

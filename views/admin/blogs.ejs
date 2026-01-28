@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include("../partials/head.ejs") %>
+
+
+<body class="bg-gray-100 min-h-screen">
+  <%- include("../partials/toast.ejs") %>
+  <div class="flex min-h-screen">
+
+    <!-- SIDEBAR -->
+  <%- include("./components/sidebar.ejs", {currentPath, admin, pageTitle}) %>
+
+
+    <!-- MAIN AREA -->
+    <div class="flex-1 flex flex-col">
+
+      <!-- HEADER -->
+<%- include("./components/main-header.ejs", {admin, totalUnreadNotifications, totalNotifications, notifications}) %>
+
+
+      <!-- MAIN CONTENT -->
+<main class="p-6 space-y-6">
+
+  <!-- HEADER -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-800">My Blogs</h1>
+      <p class="text-sm text-gray-500">
+        Manage your content and track performance
+      </p>
+    </div>
+
+    <a
+      href="/admin/blogs/create"
+      class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl
+             bg-indigo-600 text-white text-sm font-semibold
+             hover:bg-indigo-700 transition shadow"
+    >
+      <i class="fa-solid fa-pen"></i>
+      Create Blog
+    </a>
+  </div>
+
+  <!-- TABLE CARD -->
+  <div class="bg-white rounded-2xl border shadow overflow-hidden">
+
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 text-gray-600">
+        <tr>
+          <th class="px-6 py-4 text-left">Blog</th>
+          <th class="px-6 py-4 text-left">Categories</th>
+          <th class="px-6 py-4 text-center">Status</th>
+          <th class="px-6 py-4 text-center">Stats</th>
+          <th class="px-6 py-4 text-right">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y">
+
+        <% if (!blogs.docs.length) { %>
+          <tr>
+            <td colspan="5" class="py-20 text-center text-gray-500">
+              No blogs found
+            </td>
+          </tr>
+        <% } %>
+
+        <% blogs.docs.forEach(blog => { %>
+          <tr class="hover:bg-gray-50 transition">
+
+            <!-- BLOG -->
+            <td class="px-6 py-4">
+              <a
+                href="/admin/blogs/<%= blog._id %>/edit"
+                class="font-medium text-gray-800 hover:text-indigo-600"
+              >
+                <%= blog.title %>
+              </a>
+              <p class="text-xs text-gray-400 mt-1">
+                <%= new Date(blog.createdAt).toDateString() %>
+              </p>
+            </td>
+
+            <!-- CATEGORIES -->
+            <td class="px-6 py-4">
+              <div class="flex flex-wrap gap-2">
+                <% blog.categories?.forEach(cat => { %>
+                  <span class="px-2.5 py-1 text-xs rounded-full bg-indigo-50 text-indigo-600">
+                    <%= cat.name %>
+                  </span>
+                <% }) %>
+              </div>
+            </td>
+<!-- STATUS -->
+<td class="px-6 py-4 text-center">
+  <select
+    class="blog-status-select px-3 py-1.5 rounded-lg text-xs font-medium border
+           focus:ring-2 focus:ring-indigo-500 cursor-pointer
+           <%= blog.status.approval === 'PENDING'
+              ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+              : blog.status.approval === 'APPROVED'
+              ? 'bg-green-50 text-green-700 border-green-200'
+              : 'bg-red-50 text-red-700 border-red-200' %>"
+    data-blog-id="<%= blog._id %>"
+    data-current="<%= blog.status.approval %>"
+  >
+    <option value="PENDING" <%= blog.status.approval === 'PENDING' ? 'selected' : '' %>>
+      Pending
+    </option>
+
+    <option value="APPROVED" <%= blog.status.approval === 'APPROVED' ? 'selected' : '' %>>
+      Approved
+    </option>
+
+    <option value="REJECTED" <%= blog.status.approval === 'REJECTED' ? 'selected' : '' %>>
+      Rejected
+    </option>
+  </select>
+</td>
+
+
+
+
+
+
+            <!-- STATS -->
+            <td class="px-6 py-4 text-center">
+              <% if (blog.status.approval === 'APPROVED') { %>
+                <div class="flex justify-center gap-4 text-gray-600">
+                  <span><i class="fa-regular fa-eye"></i> <%= blog.stats.views %></span>
+                  <span><i class="fa-regular fa-heart"></i> <%= blog.likeCount %></span>
+                  <span><i class="fa-regular fa-comment"></i> <%= blog.commentCount %></span>
+                  <span><i class="fa-regular fa-bookmark"></i> <%= blog.bookmarkCount %></span>
+                </div>
+              <% } else { %>
+                <span class="text-xs text-gray-400">
+                  Locked
+                </span>
+              <% } %>
+            </td>
+
+            <!-- ACTIONS -->
+            <td class="px-6 py-4 text-right">
+              <div class="flex justify-end gap-3">
+
+                <a
+                  href="/admin/blogs/<%= blog._id %>/edit"
+                  class="text-indigo-600 hover:text-indigo-800"
+                  title="Edit"
+                >
+                  <i class="fa-solid fa-pen"></i>
+                </a>
+
+                <form
+                  action="/admin/blogs/<%= blog._id %>?_method=DELETE"
+                  method="POST"
+                  onsubmit="return confirm('Delete this blog?')"
+                >
+                  <button class="text-red-600 hover:text-red-800">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </form>
+
+              </div>
+            </td>
+
+          </tr>
+        <% }) %>
+
+      </tbody>
+    </table>
+
+    <!-- PAGINATION -->
+    <div class="flex items-center justify-between px-6 py-4 border-t text-sm">
+      <p class="text-gray-500">
+        Page <%= blogs.page %> of <%= blogs.totalPages %>
+      </p>
+
+      <div class="flex gap-2">
+        <% if (blogs.hasPrevPage) { %>
+          <a href="?page=<%= blogs.prevPage %>" class="btn inline-flex items-center px-4 py-2
+         text-sm font-medium text-gray-700
+         bg-white border border-gray-300
+         rounded-lg
+         hover:bg-gray-100
+         focus:outline-none focus:ring-2 focus:ring-indigo-400
+         transition"> ← Prev</a>
+        <% } %>
+
+        <% if (blogs.hasNextPage) { %>
+          <a href="?page=<%= blogs.nextPage %>" class="btn inline-flex items-center px-4 py-2
+         text-sm font-medium text-gray-700
+         bg-white border border-gray-300
+         rounded-lg
+         hover:bg-gray-100
+         focus:outline-none focus:ring-2 focus:ring-indigo-400
+         transition">Next →</a>
+        <% } %>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+
+
+<%- include("./components/footer.ejs", {admin}) %>
+
+    </div>
+  </div>
+    <%- include('../partials/toast-script.ejs') %>
+    <%- include("./components/icon-hover.ejs") %>
+    <%- include("./components/back-button.ejs") %>
+
+  <%- include("./components/real-time.ejs") %>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.blog-status-select').forEach(select => {
+      select.addEventListener('change', async () => {
+        const blogId = select.dataset.blogId;
+        const status = select.value;
+
+        const previousValue = select.getAttribute('data-current');
+        select.disabled = true;
+
+        try {
+          const res = await fetch(`/admin/blogs/${blogId}/approval`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+              status: { approval: status }
+            })
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message);
+
+          // reset styles
+          select.classList.remove(
+            'bg-yellow-50','text-yellow-700','border-yellow-200',
+            'bg-green-50','text-green-700','border-green-200',
+            'bg-red-50','text-red-700','border-red-200'
+          );
+
+          if (status === 'APPROVED') {
+            select.classList.add('bg-green-50','text-green-700','border-green-200');
+          } else if (status === 'REJECTED') {
+            select.classList.add('bg-red-50','text-red-700','border-red-200');
+          } else {
+            select.classList.add('bg-yellow-50','text-yellow-700','border-yellow-200');
+          }
+
+          select.setAttribute('data-current', status);
+
+        } catch (err) {
+          alert(err.message || 'Failed to update status');
+          select.value = previousValue;
+        } finally {
+          select.disabled = false;
+        }
+      });
+    });
+  });
+</script>
+
+
+
+
+
+
+
+</body>
+</html>

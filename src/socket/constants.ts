@@ -1,0 +1,4 @@
+export const BLOG = {
+  NEW_VIEW: 'BLOG_NEW_VIEW',
+  VIEW_UPDATE: 'UPDATE_BLOG_VIEWS',
+};

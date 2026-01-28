@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include("../partials/head.ejs") %>
+
+  <body class="bg-gray-100 min-h-screen">
+    <!-- TOAST START -->
+    <%- include("../partials/toast.ejs") %>
+
+<!-- WRAPPER -->
+    <div class="flex min-h-screen">
+      <!-- SIDEBAR  START -->
+<%- include("./components/sidebar.ejs", {currentPath, admin, pageTitle}) %>
+
+
+      <!-- MAIN AREA -->
+<div class="flex-1 flex flex-col">
+        <!-- TOP BAR -->
+<%- include("./components/main-header.ejs", {admin, totalUnreadNotifications, totalNotifications, notifications}) %>
+
+
+        <!-- MAIN CONTENT -->
+<main class="flex-1 p-6">
+  <!-- STATS -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div class="bg-white p-6 rounded-xl shadow">
+      <p class="text-sm text-gray-500">Publishers</p>
+      <p class="text-2xl font-bold"><%= stats.publishers || 0 %></p>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow">
+      <p class="text-sm text-gray-500">Users</p>
+      <p class="text-2xl font-bold"><%= stats.users || 0 %></p>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow">
+      <p class="text-sm text-gray-500">Blogs</p>
+      <p class="text-2xl font-bold"><%= stats.blogs || 0 %></p>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow">
+      <p class="text-sm text-gray-500">Pending Reviews</p>
+      <p class="text-2xl font-bold text-red-500"><%= stats.pending || 0 %></p>
+    </div>
+  </div>
+</main>
+
+
+        <!-- FOOTER -->
+<%- include("./components/footer.ejs",{admin}) %>
+
+
+      </div>
+    </div>
+      <!-- 🔔 REALTIME NOTIFICATION CONTAINER -->
+    <%- include('../partials/toast-script.ejs') %>
+    <%- include("./components/icon-hover.ejs") %>
+    <%- include("./components/back-button.ejs") %>
+    <%- include("./components/real-time.ejs") %>
+
+
+
+  </body>
+</html>

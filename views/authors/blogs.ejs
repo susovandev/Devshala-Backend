@@ -1,230 +1,193 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include("../partials/head.ejs") %>
+  <%- include("../partials/head.ejs") %>
 
+  <body class="bg-gray-100 min-h-screen">
+    <%- include("../partials/toast.ejs") %>
+    <div class="flex min-h-screen">
+      <!-- SIDEBAR -->
+      <%- include("./components/sidebar.ejs", {currentPath, author, pageTitle}) %>
 
-<body class="bg-gray-100 min-h-screen">
-  <%- include("../partials/toast.ejs") %>
-  <div class="flex min-h-screen">
+      <!-- MAIN AREA -->
+      <div class="flex-1 flex flex-col">
+        <!-- HEADER -->
+        <%- include("./components/main-header.ejs", {author, totalUnreadNotifications,
+        totalNotifications, notifications}) %>
 
-    <!-- SIDEBAR -->
-  <%- include("./components/sidebar.ejs", {currentPath, author, pageTitle}) %>
-
-
-    <!-- MAIN AREA -->
-    <div class="flex-1 flex flex-col">
-
-      <!-- HEADER -->
-<%- include("./components/main-header.ejs", {author, totalUnreadNotifications, totalNotifications, notifications}) %>
-
-
-      <!-- MAIN CONTENT -->
-<main class="p-6 space-y-6">
-
-  <!-- HEADER -->
-  <div class="flex items-center justify-between">
-    <div>
-      <h1 class="text-2xl font-semibold text-gray-800">My Blogs</h1>
-      <p class="text-sm text-gray-500">
-        Track performance and approval status of your blogs
-      </p>
-    </div>
-
-    <!-- CREATE BLOG (ONLY ACTION AUTHOR HAS) -->
-    <a
-      href="/authors/blogs/create"
-      class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl
-             bg-indigo-600 text-white text-sm font-semibold
-             hover:bg-indigo-700 transition shadow"
-    >
-      <i class="fa-solid fa-pen"></i>
-      Create Blog
-    </a>
-  </div>
-
-  <!-- TABLE CARD -->
-  <div class="bg-white rounded-2xl shadow border overflow-hidden">
-
-    <table class="w-full text-sm">
-      <thead class="bg-gray-50 text-gray-600">
-        <tr>
-          <th class="px-6 py-4 text-left">Blog</th>
-          <th class="px-6 py-4 text-left">Categories</th>
-          <th class="px-6 py-4 text-center">Status</th>
-          <th class="px-6 py-4 text-center">Stats</th>
-        </tr>
-      </thead>
-
-      <tbody class="divide-y">
-
-        <% if (!blogs.docs.length) { %>
-          <!-- EMPTY STATE -->
-          <tr>
-            <td colspan="4" class="px-6 py-20 text-center">
-              <div class="flex flex-col items-center gap-3 text-gray-500">
-                <i class="fa-regular fa-file-lines text-4xl text-indigo-500"></i>
-                <p class="text-lg font-medium">No blogs yet</p>
-                <p class="text-sm">Start writing to see your blogs here</p>
-              </div>
-            </td>
-          </tr>
-        <% } %>
-
-        <% blogs.docs.forEach(blog => { %>
-
-          <tr class="hover:bg-gray-50 transition">
-
-            <!-- BLOG INFO -->
-            <td class="px-6 py-4">
-              <p class="font-medium text-gray-800 truncate max-w-xs">
-                <%= blog.title %>
+        <!-- MAIN CONTENT -->
+        <main class="p-6 space-y-6">
+          <!-- HEADER -->
+          <div class="flex items-center justify-between">
+            <div>
+              <h1 class="text-2xl font-semibold text-gray-800">My Blogs</h1>
+              <p class="text-sm text-gray-500">
+                Track performance and approval status of your blogs
               </p>
+            </div>
 
-              <p class="text-xs text-gray-400 mt-1">
-                Created on
-                <%= new Date(blog.createdAt).toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric'
-                }) %>
-              </p>
-            </td>
+            <!-- CREATE BLOG (ONLY ACTION AUTHOR HAS) -->
+            <a
+              href="/authors/blogs/create"
+              class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition shadow"
+            >
+              <i class="fa-solid fa-pen"></i>
+              Create Blog
+            </a>
+          </div>
 
-            <!-- CATEGORIES -->
-            <td class="px-6 py-4">
-              <div class="flex flex-wrap gap-2">
-                <% if (blog.categories?.length) { %>
-                  <% blog.categories.forEach(cat => { %>
+          <!-- TABLE CARD -->
+          <div class="bg-white rounded-2xl shadow border overflow-hidden">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50 text-gray-600">
+                <tr>
+                  <th class="px-6 py-4 text-left">Blog</th>
+                  <th class="px-6 py-4 text-left">Categories</th>
+                  <th class="px-6 py-4 text-center">Status</th>
+                  <th class="px-6 py-4 text-center">Stats</th>
+                </tr>
+              </thead>
+
+              <tbody class="divide-y">
+                <% if (!blogs.docs.length) { %>
+                <!-- EMPTY STATE -->
+                <tr>
+                  <td colspan="4" class="px-6 py-20 text-center">
+                    <div class="flex flex-col items-center gap-3 text-gray-500">
+                      <i class="fa-regular fa-file-lines text-4xl text-indigo-500"></i>
+                      <p class="text-lg font-medium">No blogs yet</p>
+                      <p class="text-sm">Start writing to see your blogs here</p>
+                    </div>
+                  </td>
+                </tr>
+                <% } %> <% blogs.docs.forEach(blog => { %>
+
+                <tr class="hover:bg-gray-50 transition">
+                  <!-- BLOG INFO -->
+                  <td class="px-6 py-4">
+                    <p class="font-medium text-gray-800 truncate max-w-xs"><%= blog.title %></p>
+
+                    <p class="text-xs text-gray-400 mt-1">
+                      Created on <%= new Date(blog.createdAt).toLocaleDateString('en-IN', { day:
+                      '2-digit', month: 'short', year: 'numeric' }) %>
+                    </p>
+                  </td>
+
+                  <!-- CATEGORIES -->
+                  <td class="px-6 py-4">
+                    <div class="flex flex-wrap gap-2">
+                      <% if (blog.categories?.length) { %> <% blog.categories.forEach(cat => { %>
+                      <span
+                        class="px-3 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-600"
+                      >
+                        <%= cat.name %>
+                      </span>
+                      <% }) %> <% } else { %>
+                      <span class="text-xs text-gray-400">—</span>
+                      <% } %>
+                    </div>
+                  </td>
+
+                  <!-- APPROVAL STATUS -->
+                  <td class="px-6 py-4 text-center">
+                    <% if ((blog.status.adminApprovalStatus === 'APPROVED' &&
+                    blog.status.publisherApprovalStatus === 'APPROVED') ) { %>
                     <span
-                      class="px-3 py-1 rounded-full text-xs font-medium
-                             bg-indigo-50 text-indigo-600"
+                      class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-semibold"
                     >
-                      <%= cat.name %>
+                      <i class="fa-solid fa-check-circle"></i>
+                      Approved
                     </span>
-                  <% }) %>
-                <% } else { %>
-                  <span class="text-xs text-gray-400">—</span>
+                    <% } else if ((blog.status.adminApprovalStatus === 'PENDING' &&
+                    blog.status.publisherApprovalStatus === 'PENDING' ) || (
+                    blog.status.adminApprovalStatus === 'PENDING' &&
+                    blog.status.publisherApprovalStatus === 'APPROVED' ) ||
+                    (blog.status.adminApprovalStatus === 'APPROVED' &&
+                    blog.status.publisherApprovalStatus === 'PENDING')) { %>
+                    <span
+                      class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-50 text-yellow-700 text-xs font-semibold"
+                    >
+                      <i class="fa-solid fa-clock"></i>
+                      Pending Review
+                    </span>
+                    <% } else { %>
+                    <span
+                      class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-semibold"
+                    >
+                      <i class="fa-solid fa-xmark-circle"></i>
+                      Rejected
+                    </span>
+                    <% } %>
+                  </td>
+
+                  <!-- STATS -->
+                  <td class="px-6 py-4 text-center">
+                    <% if (blog.status.adminApprovalStatus === 'APPROVED' &&
+                    blog.status.publisherApprovalStatus === 'APPROVED') { %>
+                    <!-- SHOW REAL STATS -->
+                    <div class="flex justify-center gap-5 text-gray-600 text-sm">
+                      <span class="flex items-center gap-1">
+                        <i class="fa-regular fa-eye"></i>
+                        <%= blog.stats.views %>
+                      </span>
+
+                      <span class="flex items-center gap-1">
+                        <i class="fa-regular fa-heart"></i>
+                        <%= blog.likeCount || 0 %>
+                      </span>
+
+                      <span class="flex items-center gap-1">
+                        <i class="fa-regular fa-comment"></i>
+                        <%= blog.commentCount || 0 %>
+                      </span>
+
+                      <span class="flex items-center gap-1">
+                        <i class="fa-regular fa-bookmark"></i>
+                        <%= blog.bookmarkCount || 0 %>
+                      </span>
+                    </div>
+                    <% } else { %>
+                    <!-- LOCKED STATS -->
+                    <span class="inline-flex items-center gap-2 text-xs text-gray-400">
+                      <i class="fa-solid fa-lock"></i>
+                      Stats available after approval
+                    </span>
+                    <% } %>
+                  </td>
+                </tr>
+
+                <% }) %>
+              </tbody>
+            </table>
+
+            <!-- PAGINATION -->
+            <div class="flex items-center justify-between px-6 py-4 border-t text-sm">
+              <p class="text-gray-500">Page <%= blogs.page %> of <%= blogs.totalPages %></p>
+
+              <div class="flex gap-2">
+                <% if (blogs.hasPrevPage) { %>
+                <a
+                  href="?page=<%= blogs.prevPage %>"
+                  class="px-3 py-1.5 rounded-lg border text-gray-600 hover:bg-gray-100"
+                >
+                  Prev
+                </a>
+                <% } %> <% if (blogs.hasNextPage) { %>
+                <a
+                  href="?page=<%= blogs.nextPage %>"
+                  class="px-3 py-1.5 rounded-lg border text-gray-600 hover:bg-gray-100"
+                >
+                  Next
+                </a>
                 <% } %>
               </div>
-            </td>
+            </div>
+          </div>
+        </main>
 
-            <!-- APPROVAL STATUS -->
-            <td class="px-6 py-4 text-center">
-              <% if (blog.status.adminApprovalStatus === 'APPROVED' && blog.status.publisherApprovalStatus === 'APPROVED') { %>
-                <span
-                  class="inline-flex items-center gap-2 px-3 py-1 rounded-full
-                         bg-green-50 text-green-700 text-xs font-semibold"
-                >
-                  <i class="fa-solid fa-check-circle"></i>
-                  Approved
-                </span>
-              <% } else if (blog.status.adminApprovalStatus === 'PENDING' && blog.status.publisherApprovalStatus === 'PENDING') { %>
-                <span
-                  class="inline-flex items-center gap-2 px-3 py-1 rounded-full
-                         bg-yellow-50 text-yellow-700 text-xs font-semibold"
-                >
-                  <i class="fa-solid fa-clock"></i>
-                  Pending Review
-                </span>
-              <% } else { %>
-                <span
-                  class="inline-flex items-center gap-2 px-3 py-1 rounded-full
-                         bg-red-50 text-red-700 text-xs font-semibold"
-                >
-                  <i class="fa-solid fa-xmark-circle"></i>
-                  Rejected
-                </span>
-              <% } %>
-            </td>
-
-            <!-- STATS -->
-            <td class="px-6 py-4 text-center">
-
-              <% if (blog.status.adminApprovalStatus === 'APPROVED' && blog.status.publisherApprovalStatus === 'APPROVED') { %>
-                <!-- SHOW REAL STATS -->
-                <div class="flex justify-center gap-5 text-gray-600 text-sm">
-
-                  <span class="flex items-center gap-1">
-                    <i class="fa-regular fa-eye"></i>
-                    <%= blog.stats.views %>
-                  </span>
-
-                  <span class="flex items-center gap-1">
-                    <i class="fa-regular fa-heart"></i>
-                    <%= blog.likeCount || 0 %>
-                  </span>
-
-                  <span class="flex items-center gap-1">
-                    <i class="fa-regular fa-comment"></i>
-                    <%= blog.commentCount || 0 %>
-                  </span>
-
-                  <span class="flex items-center gap-1">
-                    <i class="fa-regular fa-bookmark"></i>
-                    <%= blog.bookmarkCount || 0 %>
-                  </span>
-
-                </div>
-              <% } else { %>
-                <!-- LOCKED STATS -->
-                <span class="inline-flex items-center gap-2 text-xs text-gray-400">
-                  <i class="fa-solid fa-lock"></i>
-                  Stats available after approval
-                </span>
-              <% } %>
-
-            </td>
-
-          </tr>
-
-        <% }) %>
-
-      </tbody>
-    </table>
-
-    <!-- PAGINATION -->
-    <div class="flex items-center justify-between px-6 py-4 border-t text-sm">
-      <p class="text-gray-500">
-        Page <%= blogs.page %> of <%= blogs.totalPages %>
-      </p>
-
-      <div class="flex gap-2">
-        <% if (blogs.hasPrevPage) { %>
-          <a
-            href="?page=<%= blogs.prevPage %>"
-            class="px-3 py-1.5 rounded-lg border text-gray-600 hover:bg-gray-100"
-          >
-            Prev
-          </a>
-        <% } %>
-
-        <% if (blogs.hasNextPage) { %>
-          <a
-            href="?page=<%= blogs.nextPage %>"
-            class="px-3 py-1.5 rounded-lg border text-gray-600 hover:bg-gray-100"
-          >
-            Next
-          </a>
-        <% } %>
+        <%- include("./components/footer.ejs", {author}) %>
       </div>
     </div>
-
-  </div>
-
-</main>
-
-
-<%- include("./components/footer.ejs", {author}) %>
-
-    </div>
-  </div>
-    <%- include('../partials/toast-script.ejs') %>
-    <%- include("./components/icon-hover.ejs") %>
-    <%- include("./components/back-button.ejs") %>
-
-  <%- include("./components/real-time.ejs") %>
-
-
-
-</body>
+    <%- include('../partials/toast-script.ejs') %> <%- include("./components/icon-hover.ejs") %> <%-
+    include("./components/back-button.ejs") %> <%- include("./components/real-time.ejs") %>
+  </body>
 </html>

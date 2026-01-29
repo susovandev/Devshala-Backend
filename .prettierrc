@@ -5,14 +5,5 @@
   "tabWidth": 2,
   "trailingComma": "all",
   "arrowParens": "always",
-  "endOfLine": "lf",
-  "overrides": [
-    {
-      "files": "*.ejs",
-      "options": {
-        "parser": "html",
-        "htmlWhitespaceSensitivity": "ignore"
-      }
-    }
-  ]
+  "endOfLine": "lf"
 }

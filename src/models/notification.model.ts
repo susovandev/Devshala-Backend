@@ -12,6 +12,7 @@ export enum NotificationType {
   LIKE = 'LIKE',
   BOOKMARK = 'BOOKMARK',
   AUTHOR_REQUEST = 'AUTHOR_REQUEST',
+  BLOG_UNWANTED_CONTENT = 'BLOG_UNWANTED_CONTENT',
 }
 export interface INotificationDocument extends Document {
   recipientId: mongoose.Types.ObjectId; // The user who will receive the notification
@@ -20,6 +21,7 @@ export interface INotificationDocument extends Document {
   message: string;
   blogId: mongoose.Types.ObjectId;
   redirectUrl?: string;
+  reason?: string;
   isRead: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -32,6 +34,7 @@ const notificationSchema = new Schema<INotificationDocument>(
     type: { type: String, enum: Object.values(NotificationType), required: true },
     message: { type: String, required: true },
     blogId: { type: Schema.Types.ObjectId, ref: 'Blog' },
+    reason: { type: String },
     redirectUrl: { type: String },
     isRead: { type: Boolean, default: false },
   },

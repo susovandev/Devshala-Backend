@@ -14,6 +14,7 @@ import morganMiddleware from '@config/morgan.js';
 import methodOverride from 'method-override';
 import { env } from '@config/env.js';
 import { initSocket } from 'socket/index.js';
+import { aiMain } from '@config/groq.js';
 
 export default function initializeApp() {
   // Create Express server

@@ -829,7 +829,7 @@ class UserAuthController {
         return res.redirect('/users/auth/reset-password');
       }
 
-      return res.render('user/auth/reset-password', {
+      return res.render('users/auth/reset-password', {
         title: 'User | Reset Password',
         pageTitle: 'User Reset Password',
         token: req.query.token,

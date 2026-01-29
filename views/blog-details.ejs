@@ -173,28 +173,37 @@
       <article class="lg:col-span-3 bg-white rounded-2xl shadow-sm overflow-hidden">
         <!-- COVER IMAGE -->
         <img
-          src="<%= blog.coverImage.url %>"
-          alt="<%= blog.title %>"
+          src="<%= blog?.coverImage?.url %>"
+          alt="<%= blog?.title %>"
           class="w-full h-80 object-cover"
         />
 
         <div class="p-8 space-y-8">
           <!-- STATUS BADGE -->
           <!-- Status Badge -->
-          <% if (blog?.status && !blog.status.isPublished) { %>
-          <span
-            class="absolute top-4 left-4 text-xs font-semibold px-3 py-1 rounded-full <%= blog.status.approval === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : blog.status.approval === 'REJECTED' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600' %>"
-          >
-            <%= blog.status.approval %>
-          </span>
+          <%
+  const status = blog?.status;
 
-          <% } else if (blog?.status?.isPublished) { %>
-          <span
-            class="absolute top-4 left-4 text-xs font-semibold px-3 py-1 rounded-full bg-green-100 text-green-700"
-          >
-            PUBLISHED
-          </span>
-          <% } %>
+  let badgeText = 'DRAFT';
+  let badgeClass = 'bg-gray-100 text-gray-600';
+
+  if (status) {
+    if (status.adminIsPublished && status.publisherIsPublished) {
+      badgeText = 'PUBLISHED';
+      badgeClass = 'bg-green-100 text-green-700';
+    } else if (
+      status.adminApprovalStatus === 'REJECTED' ||
+      status.publisherApprovalStatus === 'REJECTED'
+    ) {
+      badgeText = 'REJECTED';
+      badgeClass = 'bg-red-100 text-red-600';
+    } else {
+      badgeText = 'PENDING';
+      badgeClass = 'bg-yellow-100 text-yellow-700';
+    }
+  }
+%>
+
 
           <!-- TITLE -->
           <h1 class="text-3xl font-bold leading-tight"><%= blog.title %></h1>
@@ -203,7 +212,7 @@
           <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
             <div class="flex items-center gap-2">
               <img
-                src="<%= blog.author?.avatarUrl.url || `https://ui-avatars.com/api/?name=${blog.author?.username}&background=0D8ABC&color=fff` %>"
+                src="<%= blog.author?.avatarUrl?.url || `https://ui-avatars.com/api/?name=${blog.author?.username}&background=0D8ABC&color=fff` %>"
                 class="w-9 h-9 rounded-full object-cover"
               />
               <span class="font-medium text-gray-700">
@@ -361,7 +370,7 @@
         <div class="bg-white p-6 rounded-xl shadow-sm">
           <div class="flex items-center gap-4">
             <img
-              src="<%= blog.author?.avatarUrl?.url || '/images/default-avatar.png' %>"
+              src="<%= blog.author?.avatarUrl?.url || `https://ui-avatars.com/api/?name=${blog.author?.username}&background=0D8ABC&color=fff` %>"
               class="w-14 h-14 rounded-full"
             />
             <div>
@@ -371,8 +380,7 @@
           </div>
 
           <p class="text-sm text-gray-600 mt-4">
-            <%=blog.author.bio || 'Writing about backend engineering, system design & scalable
-            APIs.' %>
+            <%=blog.author.bio || 'Writing about backend engineering, system design & scalable APIs.' %>
           </p>
         </div>
 

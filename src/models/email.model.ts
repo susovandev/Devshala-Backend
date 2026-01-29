@@ -15,7 +15,7 @@ export interface IEmailDocument extends mongoose.Document {
   subject: string;
   body: string;
   source: UserRole;
-  sendAt: Date;
+  sendAt?: Date;
   status: EmailStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -29,7 +29,7 @@ const emailSchema = new mongoose.Schema<IEmailDocument>(
     subject: { type: String, required: true },
     body: { type: String, required: true },
     source: { type: String, enum: Object.values(UserRole), required: true },
-    sendAt: { type: Date, default: Date.now },
+    sendAt: { type: Date },
     status: { type: String, enum: Object.values(EmailStatus) },
   },
   { timestamps: true },

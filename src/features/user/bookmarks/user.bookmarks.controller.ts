@@ -3,18 +3,23 @@ import Logger from '@config/logger.js';
 import bookmarkModel from 'models/bookmark.model.js';
 import notificationModel from 'models/notification.model.js';
 import mongoose from 'mongoose';
+import { redisGet, redisSet, redisDelByPattern } from '@libs/redis.js';
 
 class BookmarksController {
   async getBookmarksPage(req: Request, res: Response) {
     try {
-      if (!req.user) {
-        req.flash('error', 'Unauthorized access');
-        return res.redirect('/users/auth/login');
-      }
-
-      const userId = new mongoose.Types.ObjectId(req.user._id);
+      const userId = new mongoose.Types.ObjectId(req?.user?._id);
       const page = Number(req.query.page) || 1;
       const limit = 6;
+
+      const cacheKey = `user:bookmarks:page:${page}:limit:${limit}:userId:${userId}`;
+      if (cacheKey) {
+        Logger.info('Fetching bookmarks from cache...');
+        const cachedData = await redisGet(cacheKey);
+        if (cachedData) {
+          return res.render('users/bookmarks', cachedData);
+        }
+      }
 
       const aggregate = bookmarkModel.aggregate([
         { $match: { userId } },
@@ -106,33 +111,39 @@ class BookmarksController {
         limit,
       };
 
-      const result = await bookmarkModel.aggregatePaginate(aggregate, options);
+      /**
+       * Get notifications
+       * Count total notifications
+       * Count total unread notifications
+       */
+      const [blogs, notifications, totalNotifications, totalUnreadNotifications] =
+        await Promise.all([
+          bookmarkModel.aggregatePaginate(aggregate, options),
+          notificationModel.find({ recipientId: userId }).sort({ createdAt: -1 }).limit(8).lean(),
+          notificationModel.countDocuments({ recipientId: userId }),
+          notificationModel.countDocuments({ recipientId: userId, isRead: false }),
+        ]);
 
-      // console.log(`bookmarsk ${JSON.stringify(result, null, 2)}`);
-
-      // Notifications
-      const notifications = await notificationModel
-        .find({ recipientId: userId })
-        .sort({ createdAt: -1 })
-        .limit(8)
-        .lean();
-
-      const totalNotifications = await notificationModel.countDocuments({
-        recipientId: userId,
-      });
-
-      const totalUnreadNotifications = await notificationModel.countDocuments({
-        recipientId: userId,
-        isRead: false,
-      });
+      if (cacheKey) {
+        Logger.info('Saving bookmarks to cache...');
+        await redisSet(cacheKey, {
+          title: 'Bookmarks',
+          pageTitle: 'Bookmarks',
+          currentPath: '/users/bookmarks',
+          user: req?.user,
+          bookmarks: blogs,
+          notifications,
+          totalNotifications,
+          totalUnreadNotifications,
+        });
+      }
 
       return res.render('users/bookmarks', {
         title: 'Bookmarks',
         pageTitle: 'Bookmarks',
         currentPath: '/users/bookmarks',
-        user: req.user,
-
-        bookmarks: result,
+        user: req?.user,
+        bookmarks: blogs,
         notifications,
         totalNotifications,
         totalUnreadNotifications,
@@ -146,19 +157,25 @@ class BookmarksController {
   async deleteBookmarkHandler(req: Request, res: Response) {
     try {
       Logger.info('Removing bookmark...');
-      if (!req.user) {
-        req.flash('error', 'Unauthorized access');
-        return res.redirect('/users/auth/login');
-      }
 
+      const userId = req?.user?._id;
       const { id } = req.params;
       if (!id) {
         return res.status(400).json({ message: 'Invalid blog id' });
       }
 
-      const bookmark = await bookmarkModel.findByIdAndDelete(id);
+      const bookmark = await bookmarkModel.findOneAndDelete({
+        _id: id,
+        userId,
+      });
       if (!bookmark) {
         return res.status(404).json({ message: 'Bookmark not found' });
+      }
+
+      const cacheKey = `user:bookmarks:*:userId:${userId}`;
+      if (cacheKey) {
+        await redisDelByPattern(cacheKey);
+        Logger.info('Deleted bookmarks from cache...');
       }
 
       return res.status(200).json({ message: 'Bookmark removed' });

@@ -38,22 +38,22 @@
 
           <img
   src="<%= user?.avatarUrl?.url 
-    ? user.avatarUrl.url 
-    : 'https://ui-avatars.com/api/?name=' + user.username + '&background=0D8ABC&color=fff' %>"
+    ? user?.avatarUrl?.url 
+    : 'https://ui-avatars.com/api/?name=' + user?.username + '&background=0D8ABC&color=fff' %>"
   class="w-32 h-32 rounded-full object-cover border"
 />
 
 
 
 
-          <h3 class="mt-4 text-lg font-semibold"><%= user.username %></h3>
-          <p class="text-sm text-gray-500"><%= user.email %></p>
+          <h3 class="mt-4 text-lg font-semibold"><%= user?.username %></h3>
+          <p class="text-sm text-gray-500"><%= user?.email %></p>
 
           <span class="mt-2 px-3 py-1 text-xs rounded-full bg-indigo-100 text-indigo-600">
-            <%= user.role %>
+            <%= user?.role %>
           </span>
 
-          <% if (user.isEmailVerified) { %>
+          <% if (user?.isEmailVerified) { %>
             <span class="mt-3 text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">
               Email Verified
             </span>
@@ -87,9 +87,9 @@
           </form>
 
           <% if (
-            user.socialLinks?.github ||
-            user.socialLinks?.linkedin ||
-            user.socialLinks?.twitter
+            user?.socialLinks?.github ||
+            user?.socialLinks?.linkedin ||
+            user?.socialLinks?.twitter
           ) { %>
 
             <div class="w-full mt-6 pt-5 border-t">
@@ -99,9 +99,9 @@
 
               <div class="flex justify-center gap-4">
 
-                <% if (user.socialLinks?.github) { %>
+                <% if (user?.socialLinks?.github) { %>
                   <a
-                    href="<%= user.socialLinks.github %>"
+                    href="<%= user?.socialLinks?.github %>"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="w-10 h-10 flex items-center justify-center rounded-lg border
@@ -113,9 +113,9 @@
                   </a>
                 <% } %>
 
-                <% if (user.socialLinks?.linkedin) { %>
+                <% if (user?.socialLinks?.linkedin) { %>
                   <a
-                    href="<%= user.socialLinks.linkedin %>"
+                    href="<%= user?.socialLinks?.linkedin %>"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="w-10 h-10 flex items-center justify-center rounded-lg border
@@ -126,9 +126,9 @@
                   </a>
                 <% } %>
 
-                <% if (user.socialLinks?.twitter) { %>
+                <% if (user?.socialLinks?.twitter) { %>
                   <a
-                    href="<%= user.socialLinks.twitter %>"
+                    href="<%= user?.socialLinks?.twitter %>"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="w-10 h-10 flex items-center justify-center rounded-lg border
@@ -175,7 +175,7 @@
               <input
                 type="text"
                 name="username"
-                value="<%= user.username %>"
+                value="<%= user?.username %>"
                 class="w-full rounded-lg border-gray-300
                        focus:ring-indigo-500 focus:border-indigo-500"
               />
@@ -198,7 +198,7 @@
                 class="w-full rounded-lg border-gray-300
                        focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Write something about yourself..."
-              ><%= user.bio || '' %></textarea>
+              ><%= user?.bio || '' %></textarea>
             </div>
           </div>
 
@@ -215,7 +215,7 @@
               <input
                 type="url"
                 name="socialLinks.github"
-                value="<%= user.socialLinks?.github || '' %>"
+                value="<%= user?.socialLinks?.github || '' %>"
                 placeholder="GitHub profile URL"
                 class="w-full rounded-lg border-gray-300
                        focus:ring-indigo-500 focus:border-indigo-500"
@@ -223,7 +223,7 @@
               <input
                 type="url"
                 name="socialLinks.linkedin"
-                value="<%= user.socialLinks?.linkedin || '' %>"
+                value="<%= user?.socialLinks?.linkedin || '' %>"
                 placeholder="LinkedIn profile URL"
                 class="w-full rounded-lg border-gray-300
                        focus:ring-indigo-500 focus:border-indigo-500"
@@ -231,7 +231,7 @@
               <input
                 type="url"
                 name="socialLinks.twitter"
-                value="<%= user.socialLinks?.twitter || '' %>"
+                value="<%= user?.socialLinks?.twitter || '' %>"
                 placeholder="Twitter profile URL"
                 class="w-full rounded-lg border-gray-300
                        focus:ring-indigo-500 focus:border-indigo-500"
@@ -251,12 +251,12 @@
             <div class="md:col-span-2 grid grid-cols-2 gap-6 text-sm">
               <div>
                 <p class="text-gray-500">Status</p>
-                <p class="font-medium text-gray-900"><%= user.status %></p>
+                <p class="font-medium text-gray-900"><%= user?.status %></p>
               </div>
               <div>
                 <p class="text-gray-500">Joined</p>
                 <p class="font-medium text-gray-900">
-                  <%= user.createdAt.toDateString() %>
+                  <%= new Date(user?.createdAt).toDateString()  || 'Unknown' %>
                 </p>
               </div>
             </div>

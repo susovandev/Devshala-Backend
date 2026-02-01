@@ -3,6 +3,7 @@ import userProfileController from './user.profile.controller.js';
 import { upload } from '@config/multer.js';
 import { validateRequest } from '@middlewares/validation.middleware.js';
 import { changePasswordSchema } from 'validations/auth.validations.js';
+import { updateProfileSchema } from 'validations/user.validations.js';
 
 const router: Router = Router();
 
@@ -18,6 +19,10 @@ router.post(
 
 router.post('/avatar', upload.single('avatar'), userProfileController.updateUserAvatarHandler);
 
-router.post('/', userProfileController.updateUserProfileHandler);
+router.post(
+  '/',
+  validateRequest(updateProfileSchema),
+  userProfileController.updateUserProfileHandler,
+);
 
 export default router;

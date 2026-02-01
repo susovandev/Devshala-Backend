@@ -60,3 +60,15 @@ export const reasonSchema = z.object({
     .min(3, { message: 'Reason must be at least 3 characters long' })
     .max(30, { message: 'Reason must be at most 30 characters long' }),
 });
+
+export const updateProfileSchema = z.object({
+  username: usernameSchema.optional(),
+
+  bio: z.string().max(200, 'Bio must be at most 200 characters').optional(),
+
+  'socialLinks.github': z.string().url('Invalid GitHub URL').optional(),
+
+  'socialLinks.linkedin': z.string().url('Invalid LinkedIn URL').optional(),
+
+  'socialLinks.twitter': z.string().url('Invalid Twitter/X URL').optional(),
+});

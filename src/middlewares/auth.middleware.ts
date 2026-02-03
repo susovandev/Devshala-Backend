@@ -94,7 +94,7 @@ export const AuthGuardEJS = async (req: Request, res: Response, next: NextFuncti
   });
 
   req.user = user as IUserDocument;
-  res.locals.currentUser = user; // Add user to res.locals
+  res.locals.currentUser = user;
   next();
 };
 

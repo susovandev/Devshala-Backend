@@ -31,7 +31,7 @@
     </div>
 
     <a
-      href="/admin/blogs/create"
+      href="/admins/blogs/create"
       class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl
              bg-indigo-600 text-white text-sm font-semibold
              hover:bg-indigo-700 transition shadow"
@@ -71,7 +71,7 @@
             <!-- BLOG -->
             <td class="px-6 py-4">
               <a
-                href="/admin/blogs/<%= blog._id %>/edit"
+                href="/admins/blogs/<%= blog._id %>/edit"
                 class="font-medium text-gray-800 hover:text-indigo-600"
               >
                 <%= blog.title %>
@@ -96,25 +96,28 @@
   <select
     class="blog-status-select px-3 py-1.5 rounded-lg text-xs font-medium border
            focus:ring-2 focus:ring-indigo-500 cursor-pointer
-           <%= blog.status.approval === 'PENDING'
+           <%= blog.status.adminApprovalStatus === 'PENDING'
               ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-              : blog.status.approval === 'APPROVED'
+              : blog.status.adminApprovalStatus === 'APPROVED'
               ? 'bg-green-50 text-green-700 border-green-200'
               : 'bg-red-50 text-red-700 border-red-200' %>"
     data-blog-id="<%= blog._id %>"
-    data-current="<%= blog.status.approval %>"
   >
-    <option value="PENDING" <%= blog.status.approval === 'PENDING' ? 'selected' : '' %>>
-      Pending
-    </option>
+    <option value="PENDING"
+  <% if (blog.status.adminApprovalStatus === 'PENDING') { %> selected <% } %>>
+  Pending
+</option>
 
-    <option value="APPROVED" <%= blog.status.approval === 'APPROVED' ? 'selected' : '' %>>
-      Approved
-    </option>
+<option value="APPROVED"
+  <% if (blog.status.adminApprovalStatus === 'APPROVED') { %> selected <% } %>>
+  Approved
+</option>
 
-    <option value="REJECTED" <%= blog.status.approval === 'REJECTED' ? 'selected' : '' %>>
-      Rejected
-    </option>
+<option value="REJECTED"
+  <% if (blog.status.adminApprovalStatus === 'REJECTED') { %> selected <% } %>>
+  Rejected
+</option>
+
   </select>
 </td>
 
@@ -125,7 +128,7 @@
 
             <!-- STATS -->
             <td class="px-6 py-4 text-center">
-              <% if (blog.status.approval === 'APPROVED') { %>
+              <% if (blog.status.adminApprovalStatus === 'APPROVED') { %>
                 <div class="flex justify-center gap-4 text-gray-600">
                   <span><i class="fa-regular fa-eye"></i> <%= blog.stats.views %></span>
                   <span><i class="fa-regular fa-heart"></i> <%= blog.likeCount %></span>
@@ -144,7 +147,7 @@
               <div class="flex justify-end gap-3">
 
                 <a
-                  href="/admin/blogs/<%= blog._id %>/edit"
+                  href="/admins/blogs/<%= blog._id %>/edit"
                   class="text-indigo-600 hover:text-indigo-800"
                   title="Edit"
                 >
@@ -152,7 +155,7 @@
                 </a>
 
                 <form
-                  action="/admin/blogs/<%= blog._id %>?_method=DELETE"
+                  action="/admins/blogs/<%= blog._id %>?_method=DELETE"
                   method="POST"
                   onsubmit="return confirm('Delete this blog?')"
                 >
@@ -205,13 +208,11 @@
 
 
 <%- include("./components/footer.ejs", {admin}) %>
-
     </div>
   </div>
     <%- include('../partials/toast-script.ejs') %>
     <%- include("./components/icon-hover.ejs") %>
     <%- include("./components/back-button.ejs") %>
-
   <%- include("./components/real-time.ejs") %>
 
 
@@ -226,7 +227,7 @@
         select.disabled = true;
 
         try {
-          const res = await fetch(`/admin/blogs/${blogId}/approval`, {
+          const res = await fetch(`/admins/blogs/${blogId}/approval`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',

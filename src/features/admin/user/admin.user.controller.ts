@@ -50,7 +50,7 @@ class AdminUserController {
       return res.render('admin/users', {
         title: 'Admin | Users',
         pageTitle: 'Manage Users',
-        currentPath: '/admin/users',
+        currentPath: '/admins/users',
         admin: req.user,
         users,
         notifications,

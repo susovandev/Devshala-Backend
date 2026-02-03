@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
-import { NotFoundError } from '@libs/errors.js';
 
-export const notFoundHandler = (req: Request, _res: Response, _next: NextFunction) => {
-  _next(new NotFoundError(`Route Not Found - ${req.originalUrl}`));
+export const notFoundHandler = (_req: Request, res: Response, _next: NextFunction) => {
+  return res.render('404', {
+    title: '404 | Page Not Found',
+  });
 };

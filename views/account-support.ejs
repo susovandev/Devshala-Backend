@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include("./partials/head.ejs", { title: "Account Support • DevShala" }) %>
+
+<body class="bg-gray-50 min-h-screen">
+  <%- include("./partials/toast.ejs") %>
+
+  <!-- Soft Background Accent -->
+  <div class="fixed inset-0 -z-10 overflow-hidden">
+    <svg class="absolute -top-32 -left-32 opacity-20" width="600" height="600" fill="none">
+      <defs>
+        <radialGradient id="accGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#6366F1"/>
+          <stop offset="100%" stop-color="transparent"/>
+        </radialGradient>
+      </defs>
+      <circle cx="300" cy="300" r="300" fill="url(#accGrad)" />
+    </svg>
+  </div>
+
+  <!-- Page -->
+  <main class="max-w-4xl mx-auto px-6 py-20">
+
+    <!-- Header -->
+    <header class="mb-14">
+      <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-semibold">
+        ACCOUNT SUPPORT
+      </span>
+
+      <h1 class="mt-4 text-4xl font-bold text-gray-900">
+        Account & Access Help
+      </h1>
+
+      <p class="mt-3 text-lg text-gray-600 max-w-2xl">
+        Manage your account, recover access, and resolve security or verification issues.
+      </p>
+    </header>
+
+    <!-- Support Options -->
+    <section class="grid gap-6 md:grid-cols-2">
+
+      <!-- Reset Password -->
+      <div class="bg-white rounded-2xl border shadow-sm p-6 hover:shadow-md transition">
+        <h3 class="text-lg font-semibold text-gray-900">
+          Reset your password
+        </h3>
+        <p class="mt-2 text-sm text-gray-600">
+          Forgot your password or want to update it securely.
+        </p>
+
+        <a
+          href="/auth/forgot-password"
+          class="inline-flex items-center mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+        >
+          Reset password →
+        </a>
+      </div>
+
+      <!-- Email Verification -->
+      <div class="bg-white rounded-2xl border shadow-sm p-6 hover:shadow-md transition">
+        <h3 class="text-lg font-semibold text-gray-900">
+          Email verification issues
+        </h3>
+        <p class="mt-2 text-sm text-gray-600">
+          Didn’t receive a verification email or your link expired.
+        </p>
+
+        <a
+          href="/auth/resend-verification"
+          class="inline-flex items-center mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+        >
+          Resend verification →
+        </a>
+      </div>
+
+      <!-- Account Locked -->
+      <div class="bg-white rounded-2xl border shadow-sm p-6 hover:shadow-md transition">
+        <h3 class="text-lg font-semibold text-gray-900">
+          Account locked or restricted
+        </h3>
+        <p class="mt-2 text-sm text-gray-600">
+          Too many attempts or suspicious activity detected.
+        </p>
+
+        <a
+          href="/support/account-lock"
+          class="inline-flex items-center mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+        >
+          Request review →
+        </a>
+      </div>
+
+      <!-- Change Email -->
+      <div class="bg-white rounded-2xl border shadow-sm p-6 hover:shadow-md transition">
+        <h3 class="text-lg font-semibold text-gray-900">
+          Change email address
+        </h3>
+        <p class="mt-2 text-sm text-gray-600">
+          Update your primary email or fix a typo.
+        </p>
+
+        <a
+          href="/support/email-change"
+          class="inline-flex items-center mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+        >
+          Update email →
+        </a>
+      </div>
+
+    </section>
+
+    <!-- Security Notice -->
+    <section class="mt-16 rounded-xl border bg-amber-50 p-5 text-sm text-amber-800 flex gap-3">
+      <svg class="h-5 w-5 mt-0.5 text-amber-600" fill="none" stroke="currentColor" stroke-width="2"
+           viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 11c0-1.657-1.343-3-3-3s-3 1.343-3 3v2h6v-2zM6 13v4a2 2 0 002 2h8a2 2 0 002-2v-4H6z"/>
+      </svg>
+
+      <div>
+        <p class="font-medium">
+          Account security matters
+        </p>
+        <p class="mt-1">
+          For your protection, we may ask for additional verification before making changes to your account.
+        </p>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="mt-14 text-center text-sm text-gray-500">
+      Still need help?
+      <a href="/support/contact" class="text-indigo-600 font-medium hover:underline">
+        Contact support
+      </a>
+    </footer>
+
+  </main>
+
+  <%- include("./partials/toast-script.ejs") %>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include("../partials/head.ejs") %>
+
+  <body class="bg-gray-100 min-h-screen">
+    <!-- TOAST START -->
+    <%- include("../partials/toast.ejs") %>
+
+<!-- WRAPPER -->
+    <div class="flex min-h-screen">
+      <!-- SIDEBAR  START -->
+<%- include("./components/sidebar.ejs", {currentPath, author, pageTitle}) %>
+
+
+      <!-- MAIN AREA -->
+<div class="flex-1 flex flex-col">
+        <!-- TOP BAR -->
+<%- include("./components/main-header.ejs", {author, totalUnreadNotifications, totalNotifications, notifications}) %>
+
+
+        <!-- MAIN CONTENT -->
+<main class="flex-1 p-6 space-y-8">
+
+  <!-- PAGE HEADER -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-900">Author Leaderboard</h1>
+      <p class="text-sm text-gray-500 mt-1">
+        Ranked by total likes across published blogs
+      </p>
+    </div>
+
+    <div class="text-sm text-gray-500">
+      Total Authors
+      <span class="ml-1 px-2 py-0.5 rounded-md bg-gray-100 text-gray-800 font-medium">
+        <%= pagination.totalDocs %>
+      </span>
+    </div>
+  </div>
+
+  <!-- TOP 3 PODIUM -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <% authors.filter(a => a.isTopThree).forEach(author => { %>
+      <div
+  class="relative bg-gradient-to-br from-indigo-50 to-white border rounded-xl p-6 shadow-sm
+         <%= author.rank === 1 ? 'ring-2 ring-yellow-400' : '' %>">
+
+  <!-- 👑 Crown for Top Author -->
+  <% if (author.rank === 1) { %>
+    <div
+      class="absolute -top-5 right-5 bg-yellow-400 text-white
+             w-9 h-9 rounded-full flex items-center justify-center
+             shadow-lg">
+      <i class="fa-solid fa-crown text-sm"></i>
+    </div>
+  <% } %>
+
+  <!-- Rank Badge -->
+  <span
+    class="absolute -top-3 left-4 px-3 py-1 rounded-full text-xs font-semibold
+      <%= author.rank === 1 ? 'bg-yellow-400 text-white'
+          : author.rank === 2 ? 'bg-gray-300 text-gray-900'
+          : 'bg-amber-600 text-white' %>">
+    #<%= author.rank %>
+  </span>
+
+  <div class="flex items-center gap-4 mt-4">
+    <img
+      src="<%= author.avatar %>"
+      class="w-14 h-14 rounded-full object-cover ring-2
+             <%= author.rank === 1 ? 'ring-yellow-400' : 'ring-transparent' %>"
+    />
+
+    <div>
+      <p class="font-semibold text-gray-900 flex items-center gap-2">
+        <%= author.name %>
+
+        <% if (author.isCurrentUser) { %>
+          <span class="text-xs px-2 py-0.5 rounded bg-indigo-100 text-indigo-700">
+            You
+          </span>
+        <% } %>
+      </p>
+
+      <p class="text-sm text-gray-500">
+        <%= author.totalLikes %> total likes
+      </p>
+    </div>
+  </div>
+</div>
+
+    <% }) %>
+  </div>
+
+  <!--  ALL AUTHORS TABLE -->
+  <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+        All Authors
+      </h2>
+    </div>
+
+    <div class="divide-y">
+      <% authors.forEach(author => { %>
+        <div
+  class="flex items-center justify-between px-6 py-4
+         hover:bg-gray-50 transition
+         <%= author.isCurrentUser ? 'bg-indigo-50' : '' %>">
+
+  <div class="flex items-center gap-4">
+    <!-- Rank -->
+    <span class="w-6 text-sm font-medium text-gray-400">
+      #<%= author.rank %>
+    </span>
+
+    <!-- Avatar + Crown -->
+    <div class="relative">
+      <img
+        src="<%= author.avatar %>"
+        class="w-10 h-10 rounded-full object-cover
+               <%= author.rank === 1 ? 'ring-2 ring-yellow-400' : '' %>"
+      />
+
+      <% if (author.rank === 1) { %>
+        <span
+          class="absolute -top-2 -right-2 w-5 h-5
+                 bg-yellow-400 text-white rounded-full
+                 flex items-center justify-center shadow">
+          <i class="fa-solid fa-crown text-[10px]"></i>
+        </span>
+      <% } %>
+    </div>
+
+    <!-- Name -->
+    <div>
+      <p class="font-medium text-gray-900 flex items-center gap-2">
+        <%= author.name %>
+
+        <% if (author.isCurrentUser) { %>
+          <span class="text-xs px-2 py-0.5 rounded bg-indigo-100 text-indigo-700">
+            You
+          </span>
+        <% } %>
+      </p>
+
+      <p class="text-xs text-gray-500">
+        <%= author.totalLikes %> likes
+      </p>
+    </div>
+  </div>
+
+  <!-- Top Badge -->
+  <% if (author.isTopThree) { %>
+    <span
+      class="text-xs px-3 py-1 rounded-full font-medium
+        <%= author.rank === 1
+          ? 'bg-yellow-100 text-yellow-700'
+          : author.rank === 2
+            ? 'bg-gray-100 text-gray-700'
+            : 'bg-amber-100 text-amber-700' %>">
+      Top <%= author.rank %>
+    </span>
+  <% } %>
+</div>
+
+      <% }) %>
+    </div>
+  </div>
+
+  <!-- PAGINATION -->
+  <div class="flex justify-center gap-2 pt-4">
+    <% if (pagination.page > 1) { %>
+      <a
+        href="?page=<%= pagination.page - 1 %>"
+        class="px-3 py-2 border rounded hover:bg-gray-100">
+        Prev
+      </a>
+    <% } %>
+
+    <% for (let i = 1; i <= pagination.totalPages; i++) { %>
+      <a
+        href="?page=<%= i %>"
+        class="px-3 py-2 border rounded
+          <%= pagination.page === i ? 'bg-indigo-600 text-white' : 'hover:bg-gray-100' %>">
+        <%= i %>
+      </a>
+    <% } %>
+
+    <% if (pagination.page < pagination.totalPages) { %>
+      <a
+        href="?page=<%= pagination.page + 1 %>"
+        class="px-3 py-2 border rounded hover:bg-gray-100">
+        Next
+      </a>
+    <% } %>
+  </div>
+
+</main>
+
+
+
+        <!-- FOOTER -->
+<%- include("./components/footer.ejs",{author}) %>
+</div>
+</div>
+
+
+
+
+    <%- include('../partials/toast-script.ejs') %>
+    <%- include("./components/icon-hover.ejs") %>
+    <%- include("./components/back-button.ejs") %>
+    <%- include("./components/real-time.ejs") %>
+
+
+  </body>
+</html>

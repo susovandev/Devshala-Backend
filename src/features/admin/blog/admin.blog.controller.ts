@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 import fs from 'node:fs/promises';
 import blogModel, { BlogApprovalStatus } from 'models/blog.model.js';
 import Logger from '@config/logger.js';
-import notificationModel from 'models/notification.model.js';
+import notificationModel, { NotificationType } from 'models/notification.model.js';
 import categoryModel from 'models/category.model.js';
 import {
   CloudinaryResourceType,
@@ -11,148 +11,140 @@ import {
   uploadOnCloudinary,
 } from '@libs/cloudinary.js';
 import { CLOUDINARY_FOLDER_NAME } from 'constants/index.js';
+import { getSocketIO } from 'socket/socket.instance.js';
+import { env } from '@config/env.js';
+import { analyzeBlog } from '@libs/blogReviewer.js';
 
 class AdminBlogController {
   async getAdminBlogPage(req: Request, res: Response) {
     try {
       Logger.info('Getting admin blog page...');
 
-      if (!req.user) {
-        Logger.warn('User not found');
-
-        req.flash('error', 'Unauthorized access please login');
-        return res.redirect('/admin/auth/login');
-      }
-
+      const adminId = req?.user?._id;
+      // Set up pagination
       const page = Number(req.query.page) || 1;
       const limit = 8;
-
       const options = {
         page,
         limit,
       };
 
-      const blogs = await blogModel.aggregatePaginate(
-        blogModel.aggregate([
-          {
-            $lookup: {
-              from: 'categories',
-              localField: 'categories',
-              foreignField: '_id',
-              as: 'categories',
-            },
-          },
-          {
-            $lookup: {
-              from: 'likes',
-              localField: '_id',
-              foreignField: 'blogId',
-              as: 'likes',
-            },
-          },
-          {
-            $lookup: {
-              from: 'comments',
-              localField: '_id',
-              foreignField: 'blogId',
-              as: 'comments',
-            },
-          },
-          {
-            $lookup: {
-              from: 'bookmarks',
-              localField: '_id',
-              foreignField: 'blogId',
-              as: 'bookmarks',
-            },
-          },
-          {
-            $addFields: {
-              likeCount: { $size: '$likes' },
-              commentCount: { $size: '$comments' },
-              bookmarkCount: { $size: '$bookmarks' },
-            },
-          },
-          {
-            $project: {
-              likes: 0,
-              comments: 0,
-              bookmarks: 0,
-            },
-          },
-          {
-            $sort: { createdAt: -1 },
-          },
-        ]),
-        options,
-      );
+      /**
+       * Get blogs from the db,
+       * Get notifications
+       * Count total notifications
+       * Count total unread notifications
+       */
+      const [blogs, notifications, totalNotifications, totalUnreadNotifications] =
+        await Promise.all([
+          blogModel.aggregatePaginate(
+            blogModel.aggregate([
+              {
+                $lookup: {
+                  from: 'categories',
+                  localField: 'categories',
+                  foreignField: '_id',
+                  as: 'categories',
+                },
+              },
+              {
+                $lookup: {
+                  from: 'likes',
+                  localField: '_id',
+                  foreignField: 'blogId',
+                  as: 'likes',
+                },
+              },
+              {
+                $lookup: {
+                  from: 'comments',
+                  localField: '_id',
+                  foreignField: 'blogId',
+                  as: 'comments',
+                },
+              },
+              {
+                $lookup: {
+                  from: 'bookmarks',
+                  localField: '_id',
+                  foreignField: 'blogId',
+                  as: 'bookmarks',
+                },
+              },
+              {
+                $addFields: {
+                  likeCount: { $size: '$likes' },
+                  commentCount: { $size: '$comments' },
+                  bookmarkCount: { $size: '$bookmarks' },
+                },
+              },
+              {
+                $project: {
+                  likes: 0,
+                  comments: 0,
+                  bookmarks: 0,
+                },
+              },
+              {
+                $sort: { createdAt: -1 },
+              },
+            ]),
+            options,
+          ),
+          notificationModel.find({ recipientId: adminId }).sort({ createdAt: -1 }).limit(8).lean(),
+          notificationModel.countDocuments({
+            recipientId: adminId,
+          }),
+          notificationModel.countDocuments({
+            recipientId: adminId,
+            isRead: false,
+          }),
+        ]);
 
-      const notifications = await notificationModel
-        .find({ recipientId: req.user._id })
-        .sort({ createdAt: -1 })
-        .limit(8)
-        .lean();
-
-      // Get total notifications
-      const totalNotifications = await notificationModel.countDocuments({
-        recipientId: req.user._id,
-      });
-
-      const totalUnreadNotifications = await notificationModel.countDocuments({
-        recipientId: req.user._id,
-        isRead: false,
-      });
+      Logger.info('Blogs fetched successfully');
 
       return res.render('admin/blogs', {
         title: 'Admin | Blogs',
         pageTitle: 'Admin Blogs',
-        currentPath: '/admin/blogs',
-        admin: req.user,
+        currentPath: '/admins/blogs',
+        admin: req?.user,
         blogs,
         notifications,
         totalNotifications,
         totalUnreadNotifications,
       });
     } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
+      Logger.error(`${(error as Error).message}`);
 
       req.flash('error', (error as Error).message);
-      return res.redirect('/admin/blogs');
+      return res.redirect('/admins/blogs');
     }
   }
 
   async getAdminCreateBlogPage(req: Request, res: Response) {
     try {
       Logger.info('Creating blog...');
-      if (!req.user) {
-        Logger.warn('Admin not found');
 
-        req.flash('error', 'Unauthorized access please try again');
-        return res.redirect('/admin/auth/login');
-      }
+      const adminId = req?.user?._id;
 
-      const adminId = req.user?._id;
+      /**
+       * Get all existing categories
+       * Get notifications
+       * Count total notifications
+       * Count total unread notifications
+       */
+      const [categories, notifications, totalNotifications, totalUnreadNotifications] =
+        await Promise.all([
+          categoryModel.find({ isDeleted: false }),
+          notificationModel.find({ recipientId: adminId }).sort({ createdAt: -1 }).limit(8).lean(),
+          notificationModel.countDocuments({ recipientId: adminId }),
+          notificationModel.countDocuments({ recipientId: adminId, isRead: false }),
+        ]);
 
-      const categories = await categoryModel.find({ isDeleted: false });
-      if (!categories) return res.redirect('/admin/blogs/create');
-
-      const notifications = await notificationModel.find({
-        recipientId: adminId,
-      });
-
-      // Get total notifications
-      const totalNotifications = await notificationModel.countDocuments({
-        recipientId: adminId,
-      });
-
-      const totalUnreadNotifications = await notificationModel.countDocuments({
-        recipientId: adminId,
-        isRead: false,
-      });
       return res.render('admin/create-blog', {
         title: 'Admin | Create Blog',
         pageTitle: 'Create Blog',
-        currentPath: '/admin/blogs',
+        currentPath: '/admins/blogs',
         admin: req.user,
         categories,
         notifications,
@@ -160,10 +152,10 @@ class AdminBlogController {
         totalNotifications,
       });
     } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
+      Logger.error(`${(error as Error).message}`);
 
       req.flash('error', (error as Error).message);
-      return res.redirect('/admin/auth/login');
+      return res.redirect('/admins/auth/login');
     }
   }
 
@@ -171,53 +163,42 @@ class AdminBlogController {
     try {
       Logger.info(`Updating blog with id: ${req.params.id}`);
 
-      if (!req.user) {
-        Logger.warn('Admin not found');
-
-        req.flash('error', 'Unauthorized access please try again');
-        return res.redirect('/admin/auth/login');
-      }
-
-      const adminId = req.user?._id;
+      /**
+       * Get adminId from the request
+       * Get blogId from the request
+       */
+      const adminId = req?.user?._id;
       const blogId = req.params.id;
 
-      // Get blog
-      const blog = await blogModel.findById(blogId).populate({
-        path: 'authorId',
-        select: 'username',
-      });
-      if (!blog) {
-        Logger.warn('Blog not found');
+      /**
+       * Get blog details
+       * Get all existing categories
+       * Get notifications
+       * Count total notifications
+       * Count total unread notifications
+       */
+      const [blog, categories, notifications, totalNotifications, totalUnreadNotifications] =
+        await Promise.all([
+          blogModel.findById(blogId).populate({
+            path: 'authorId',
+            select: 'username',
+          }),
+          categoryModel.find({ isDeleted: false }),
+          notificationModel.find({ recipientId: adminId }).sort({ createdAt: -1 }).limit(8).lean(),
+          notificationModel.countDocuments({ recipientId: adminId }),
+          notificationModel.countDocuments({ recipientId: adminId, isRead: false }),
+        ]);
 
-        req.flash('error', 'Blog not found');
-        return res.redirect('/admin/blogs');
+      if (!blog) {
+        throw new Error('Blog not found with this Id');
       }
 
-      // Get all categories
-      const categories = await categoryModel.find({ isDeleted: false });
-
-      const notifications = await notificationModel
-        .find({
-          recipientId: adminId,
-        })
-        .sort({ createdAt: -1 })
-        .limit(8)
-        .lean();
-
-      // Get total notifications
-      const totalNotifications = await notificationModel.countDocuments({
-        recipientId: adminId,
-      });
-
-      const totalUnreadNotifications = await notificationModel.countDocuments({
-        recipientId: adminId,
-        isRead: false,
-      });
+      Logger.info('Blog detail fetched successfully');
 
       return res.render('admin/update-blog', {
         title: 'Admin | Update Blog',
         pageTitle: 'Update Blog',
-        currentPath: '/admin/blogs',
+        currentPath: '/admins/blogs',
         admin: req.user,
         blog,
         categories,
@@ -226,10 +207,10 @@ class AdminBlogController {
         totalNotifications,
       });
     } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
+      Logger.error(`${(error as Error).message}`);
 
       req.flash('error', (error as Error).message);
-      return res.redirect('/admin/blogs');
+      return res.redirect('/admins/blogs');
     }
   }
 
@@ -237,27 +218,32 @@ class AdminBlogController {
     try {
       Logger.info('Creating blog...');
 
-      if (!req.user) {
-        Logger.warn('Admin not found');
-
-        req.flash('error', 'Unauthorized access please try again');
-        return res.redirect('/admin/auth/login');
-      }
-
-      const adminId = req.user?._id;
+      const adminId = req?.user?._id;
 
       const { title, excerpt, content, categories, tags } = req.body;
-      const coverImageLocalFilePath = req.file?.path;
+      const coverImageLocalFilePath = req?.file?.path;
 
-      // 1.Check if local file path is not found
+      // Check if local file path is not found
       if (!coverImageLocalFilePath) {
-        Logger.warn('User id or cover image local file path not found');
-
-        req.flash('error', 'Please change your cover image and try again');
-        return res.redirect('/admin/blogs/create');
+        throw new Error('Please change your cover image and try again');
       }
 
-      // 2. upload cover image to cloudinary
+      const textOnlyContent = (content || '').replace(/<[^>]*>/g, '').trim();
+      if (!textOnlyContent) {
+        throw new Error('Blog content cannot be empty');
+      }
+      
+      const isTechBlog = await analyzeBlog({
+        title,
+        excerpt,
+        content: textOnlyContent,
+      });
+
+      if (!isTechBlog || !isTechBlog?.isTechRelated) {
+        throw new Error('Blog is not tech related please provide tech related content');
+      }
+
+      // Upload cover image to cloudinary
       const cloudinaryResponse = await uploadOnCloudinary({
         localFilePath: coverImageLocalFilePath,
         resourceType: CloudinaryResourceType.IMAGE,
@@ -265,12 +251,10 @@ class AdminBlogController {
       });
       if (!cloudinaryResponse) {
         Logger.warn('Uploading cover image to cloudinary failed');
-
-        req.flash('error', 'Something went wrong please try again');
-        return res.redirect('/admin/blogs/create');
+        throw new Error('Something went wrong please try again');
       }
 
-      // 3. create blog
+      // Create a blog
       const newBlog = await blogModel.create({
         title,
         slug: `${title
@@ -297,23 +281,21 @@ class AdminBlogController {
           adminIsPublished: true,
         },
         publisherId: adminId,
+        publishedAt: new Date(Date.now()),
       });
       if (!newBlog) {
-        Logger.warn('Failed to create blog');
-
-        req.flash('error', 'Failed to create blog, please try again');
-        return res.redirect('/admin/blogs/create');
+        throw new Error('Failed to create blog, please try again');
       }
 
       req.flash('success', 'Blog created successfully');
-      return res.redirect('/admin/blogs');
+      return res.redirect('/admins/blogs');
     } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
+      Logger.error(`${(error as Error).message}`);
 
       req.flash('error', (error as Error).message);
-      return res.redirect('/admin/blogs');
+      return res.redirect('/admins/blogs');
     } finally {
-      if (req.file) {
+      if (req?.file && req.file?.path) {
         try {
           fs.unlink(req.file.path);
           Logger.info('Local file path deleted successfully');
@@ -331,11 +313,7 @@ class AdminBlogController {
 
       Logger.info(`Approving blog: ${blogId} with status: ${approval}`);
 
-      if (!req.user) {
-        throw new Error('Unauthorized access');
-      }
-
-      const adminId = req.user._id;
+      const adminId = req?.user?._id;
 
       if (!['APPROVED', 'REJECTED', 'PENDING'].includes(approval)) {
         return res.status(400).json({
@@ -387,18 +365,14 @@ class AdminBlogController {
     try {
       Logger.info('Update blog handler calling...');
 
-      if (!req.user) {
-        throw new Error('Unauthorized access');
-      }
+      const adminId = req?.user?._id;
 
-      const adminId = req.user._id;
-
-      // 1. Get blogId, coverImage, data from the frontend
+      // Get blogId, coverImage, data from the frontend
       const blogId = req.params.id;
       const coverImageLocalFilePath = req.file?.path;
       const data = req.body;
 
-      // 2. Check blog is already exits or not
+      // Check blog is already exits or not
       const blog = await blogModel.findById(blogId);
       if (!blog) {
         throw new Error('Blog not found');
@@ -423,7 +397,7 @@ class AdminBlogController {
 
         // DELETE OLD IMAGE
         if (blog.coverImage.publicId) {
-          await deleteFromCloudinary(blog.coverImage.publicId);
+          await deleteFromCloudinary(blog?.coverImage?.publicId);
           Logger.info('Previous cover image deleted from the cloudinary');
         }
 
@@ -466,14 +440,14 @@ class AdminBlogController {
       await blog.save();
 
       req.flash('success', 'Blog updated successfully');
-      return res.redirect(`/admin/blogs/${blogId}/edit`);
+      return res.redirect(`/admins/blogs/${blogId}/edit`);
     } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
+      Logger.error(`${(error as Error).message}`);
 
       req.flash('error', (error as Error).message);
-      return res.redirect(`/admin/blogs/${req.params.id}/edit`);
+      return res.redirect(`/admins/blogs/${req.params.id}/edit`);
     } finally {
-      if (req.file) {
+      if (req?.file && req?.file?.path) {
         try {
           fs.unlink(req.file.path);
           Logger.info('Local file path deleted successfully');
@@ -488,29 +462,26 @@ class AdminBlogController {
     try {
       Logger.info('Delete blog handler calling...');
 
-      const blogId = req.params.id;
+      const blogId = req.params?.id;
 
       const blog = await blogModel.findByIdAndDelete(blogId);
       if (!blog) {
-        Logger.warn('Blog not found');
-
-        req.flash('error', 'Blog not found');
-        return res.redirect('/admin/blogs');
+        throw new Error('Blog not found');
       }
 
       // DELETE IMAGES FROM THE CLOUDINARY
-      if (blog.coverImage.publicId) {
+      if (blog?.coverImage?.publicId) {
         await deleteFromCloudinary(blog.coverImage.publicId);
         Logger.warn('Cover image deleted from the cloudinary');
       }
 
       req.flash('success', 'Blog deleted successfully');
-      return res.redirect('/admin/blogs');
+      return res.redirect('/admins/blogs');
     } catch (error) {
       Logger.error((error as Error).message);
 
       req.flash('error', (error as Error).message);
-      return res.redirect('/admin/blogs');
+      return res.redirect('/admins/blogs');
     }
   }
 }

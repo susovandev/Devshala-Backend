@@ -29,7 +29,7 @@ class AdminDashboardController {
       return res.render('admin/dashboard', {
         title: 'Admin | Dashboard',
         pageTitle: 'Admin Dashboard',
-        currentPath: '/admin/dashboard',
+        currentPath: '/admins/dashboard',
         admin: req.user,
         stats: {
           publishers: 12,

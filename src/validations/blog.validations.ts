@@ -23,7 +23,7 @@ export const createBlogSchema = z.object({
     })
     .trim()
     .min(50, { message: 'Excerpt must be at least 50 characters long' })
-    .max(500, { message: 'Excerpt must be at most 500 characters long' }),
+    .max(800, { message: 'Excerpt must be at most 500 characters long' }),
 
   content: z
     .string({

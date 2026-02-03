@@ -14,9 +14,9 @@
   socket.emit('admin:room', adminId);
 
   socket.on('notification:new', (data) => {
-    console.log('BACKEND RESPONSE', data);
     const container = document.getElementById('notification-container');
 
+    // Notification Toast container
     const toast = document.createElement('div');
     toast.className = 'relative bg-indigo-50 border border-indigo-200 p-3 rounded';
 
@@ -31,6 +31,7 @@
     toast.querySelector('button').onclick = () => toast.remove();
     container.prepend(toast);
 
+    // Increment bell count
     let badge = document.getElementById('notification-badge');
     if (!badge) {
       badge = document.createElement('span');
@@ -99,7 +100,7 @@
 
     if (item.dataset.read === 'true') return;
 
-    fetch(`/admin/notifications/${id}/read`, { method: 'PATCH' }).catch(() => {});
+    fetch(`/admins/notifications/${id}/read`, { method: 'PATCH' }).catch(() => {});
 
     item.dataset.read = 'true';
     item.classList.remove('bg-indigo-50/60');

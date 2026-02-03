@@ -181,7 +181,7 @@
 
         <!-- Delete -->
         <form
-          action="/admin/categories/<%= cat._id %>?_method=DELETE"
+          action="/admins/categories/<%= cat._id %>?_method=DELETE"
           method="POST"
           class="inline"
           onsubmit="return confirm('Are you sure you want to delete this category?')"
@@ -286,7 +286,7 @@
     </div>
 
     <!-- FORM -->
-    <form action="/admin/categories" method="POST" class="space-y-5">
+    <form action="/admins/categories" method="POST" class="space-y-5">
 
       <!-- INPUT -->
       <div>
@@ -432,7 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const name = btn.dataset.name;
 
       editInput.value = name;
-      editForm.action = `/admin/categories/${id}?_method=PUT`;
+      editForm.action = `/admins/categories/${id}?_method=PUT`;
 
       editModal.classList.remove('hidden');
       editModal.classList.add('flex');

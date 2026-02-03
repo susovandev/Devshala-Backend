@@ -3,6 +3,7 @@
   <%- include('./partials/head.ejs', { title }) %>
 
   <body class="bg-gray-50 text-gray-800">
+    <%- include("./partials/toast.ejs") %>
     <!-- ================= HEADER ================= -->
     <header class="sticky top-0 z-50 bg-white border-b">
       <div class="max-w-7xl mx-auto px-6">
@@ -27,150 +28,172 @@
 
           <div class="flex items-center space-x-4">
             <% if (currentUser) { %>
-
-            <div class="relative">
-              <!-- Bell -->
-              <button
-                id="notification-bell"
-                type="button"
-                class="relative p-2 rounded-full hover:bg-gray-100 transition text-gray-600 hover:text-gray-900"
-              >
-                <i class="fa-regular fa-bell text-lg"></i>
-
-                <% if (totalUnreadNotifications > 0) { %>
-                <span
-                  id="notification-badge"
-                  class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-medium"
+              <!-- Notifications -->
+              <div class="relative">
+                <button
+                  id="notification-bell"
+                  type="button"
+                  class="relative p-2 rounded-full hover:bg-gray-100 transition text-gray-600 hover:text-gray-900"
                 >
-                  <%= totalUnreadNotifications %>
-                </span>
-                <% } %>
-              </button>
+                  <i class="fa-regular fa-bell text-lg"></i>
 
-              <!-- DROPDOWN -->
-              <div
-                id="notification-dropdown"
-                class="hidden absolute right-0 mt-3 w-96 bg-white border rounded-xl shadow-xl z-50 overflow-hidden"
-              >
-                <!-- HEADER -->
-                <div class="px-4 py-3 border-b flex items-center justify-between">
-                  <h4 class="text-sm font-semibold text-gray-700">Notifications</h4>
-                  <span class="text-xs text-gray-500">
-                    <%= totalUnreadNotifications %> unread • <%= totalNotifications %> total
-                  </span>
-                </div>
+                  <% if (totalUnreadNotifications > 0) { %>
+                    <span
+                      id="notification-badge"
+                      class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-medium"
+                    >
+                      <%= totalUnreadNotifications %>
+                    </span>
+                  <% } %>
+                </button>
 
-                <!-- LIST -->
-                <div id="notification-list" class="max-h-[360px] overflow-y-auto">
-                  <% if (notifications?.length) { %> <% notifications.forEach(n => { %>
-                  <a
-                    href="#"
-                    data-id="<%= n._id %>"
-                    data-read="<%= n.isRead %>"
-                    class="notification-item relative flex gap-3 px-4 py-3 border-b text-sm transition <%= n.isRead ? 'hover:bg-gray-50' : 'bg-indigo-50/60 hover:bg-indigo-50' %>"
-                  >
-                    <!-- LEFT ACCENT FOR UNREAD -->
-                    <% if (!n.isRead) { %>
-                    <span class="absolute left-0 top-0 h-full w-1 bg-indigo-500"></span>
-                    <% } %>
-
-                    <!-- ICON -->
-                    <div class="mt-1 text-indigo-600 shrink-0">
-                      <i class="fa-solid fa-circle-info"></i>
-                    </div>
-
-                    <!-- CONTENT -->
-                    <div class="flex-1">
-                      <p
-                        class="leading-relaxed <%= n.isRead ? 'text-gray-700' : 'text-gray-900 font-medium' %>"
-                      >
-                        <%= n.message %>
-                      </p>
-
-                      <span class="text-xs text-gray-400">
-                        <%= new Date(n.createdAt).toLocaleString() %>
-                      </span>
-                    </div>
-
-                    <!-- UNREAD DOT -->
-                    <% if (!n.isRead) { %>
-                    <span class="mt-2 w-2 h-2 bg-indigo-500 rounded-full"></span>
-                    <% } %>
-                  </a>
-                  <% }) %>
-
-                  <!-- READ MORE -->
-                  <% if (totalNotifications > notifications.length) { %>
-                  <a
-                    href="/authors/notifications"
-                    class="block px-4 py-3 text-center text-sm font-medium text-indigo-600 hover:bg-indigo-50 transition"
-                  >
-                    Read more →
-                  </a>
-                  <% } %> <% } else { %>
-
-                  <!-- EMPTY STATE -->
-                  <div class="px-6 py-8 text-center text-sm text-gray-500">
-                    <i class="fa-regular fa-bell-slash text-2xl mb-2 text-gray-400"></i>
-                    <p>No new notifications</p>
+                <!-- DROPDOWN -->
+                <div
+                  id="notification-dropdown"
+                  class="hidden absolute right-0 mt-3 w-96 bg-white border rounded-xl shadow-xl z-50 overflow-hidden"
+                >
+                  <!-- HEADER -->
+                  <div class="px-4 py-3 border-b flex items-center justify-between">
+                    <h4 class="text-sm font-semibold text-gray-700">
+                      Notifications
+                    </h4>
+                    <span class="text-xs text-gray-500">
+                      <%= totalUnreadNotifications %> unread •
+                      <%= totalNotifications %> total
+                    </span>
                   </div>
 
+                  <!-- LIST -->
+                  <div
+                    id="notification-list"
+                    class="max-h-[360px] overflow-y-auto"
+                  >
+                    <% if (notifications?.length) { %>
+                      <% notifications.forEach(n => { %>
+                        <a
+                          href="#"
+                          data-id="<%= n._id %>"
+                          data-read="<%= n.isRead %>"
+                          class="notification-item relative flex gap-3 px-4 py-3 border-b text-sm transition <%= n.isRead ? 'hover:bg-gray-50' : 'bg-indigo-50/60 hover:bg-indigo-50' %>"
+                        >
+                          <!-- LEFT ACCENT FOR UNREAD -->
+                          <% if (!n.isRead) { %>
+                            <span class="absolute left-0 top-0 h-full w-1 bg-indigo-500"></span>
+                          <% } %>
+
+                          <!-- ICON -->
+                          <div class="mt-1 text-indigo-600 shrink-0">
+                            <i class="fa-solid fa-circle-info"></i>
+                          </div>
+
+                          <!-- CONTENT -->
+                          <div class="flex-1">
+                            <p
+                              class="leading-relaxed <%= n.isRead ? 'text-gray-700' : 'text-gray-900 font-medium' %>"
+                            >
+                              <%= n.message %>
+                            </p>
+
+                            <span class="text-xs text-gray-400">
+                              <%= new Date(n.createdAt).toLocaleString() %>
+                            </span>
+                          </div>
+
+                          <!-- UNREAD DOT -->
+                          <% if (!n.isRead) { %>
+                            <span class="mt-2 w-2 h-2 bg-indigo-500 rounded-full"></span>
+                          <% } %>
+                        </a>
+                      <% }) %>
+
+                      <!-- READ MORE -->
+                      <% if (totalNotifications > notifications.length) { %>
+                        <a
+                          href="/authors/notifications"
+                          class="block px-4 py-3 text-center text-sm font-medium text-indigo-600 hover:bg-indigo-50 transition"
+                        >
+                          Read more →
+                        </a>
+                      <% } %>
+                    <% } else { %>
+                      <!-- EMPTY STATE -->
+                      <div class="px-6 py-8 text-center text-sm text-gray-500">
+                        <i class="fa-regular fa-bell-slash text-2xl mb-2 text-gray-400"></i>
+                        <p>No new notifications</p>
+                      </div>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+
+              <!-- USER MENU -->
+              <div class="relative group">
+                <button
+                  class="flex items-center gap-2 rounded-full px-1 py-1 hover:bg-gray-100 focus:outline-none"
+                >
+                  <img
+                    src="<%= currentUser?.avatarUrl?.url || `https://ui-avatars.com/api/?name=${currentUser?.username}&background=0D8ABC&color=fff` %>"
+                    class="w-8 h-8 rounded-full object-cover"
+                  />
+                  <i class="fa-solid fa-chevron-down text-xs text-gray-500"></i>
+                </button>
+
+                <!-- DROPDOWN -->
+                <div
+                  class="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border bg-white shadow-lg opacity-0 invisible translate-y-1 transition-all duration-150 ease-out group-hover:opacity-100 group-hover:visible group-hover:translate-y-0"
+                >
+                  <% if (['admin', 'author', 'publisher', 'user'].includes(currentUser.role)) { %>
+                    <a
+                      href="/<%= currentUser.role %>s/profile"
+                      class="block px-4 py-2 text-sm hover:bg-gray-50"
+                    >
+                      Profile
+                    </a>
+
+                    <a
+                      href="/<%= currentUser.role %>s/dashboard"
+                      class="block px-4 py-2 text-sm hover:bg-gray-50"
+                    >
+                      Dashboard
+                    </a>
+
+                    <div class="border-t"></div>
+
+                    <form
+                      action="/<%= currentUser.role %>s/auth/logout"
+                      method="POST"
+                    >
+                      <button
+                        class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
+                      >
+                        Logout
+                      </button>
+                    </form>
                   <% } %>
                 </div>
               </div>
-            </div>
-
-            <div class="relative group">
-              <button
-                class="flex items-center gap-2 rounded-full px-1 py-1 hover:bg-gray-100 focus:outline-none"
-              >
-                <img
-                  src="<%= currentUser?.avatarUrl?.url || `https://ui-avatars.com/api/?name=${currentUser?.username}&background=0D8ABC&color=fff` %>"
-                  class="w-8 h-8 rounded-full object-cover"
-                />
-                <i class="fa-solid fa-chevron-down text-xs text-gray-500"></i>
-              </button>
-
-              <!-- DROPDOWN -->
-              <div
-                class="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border bg-white shadow-lg opacity-0 invisible translate-y-1 transition-all duration-150 ease-out group-hover:opacity-100 group-hover:visible group-hover:translate-y-0"
-              >
-                <a href="/users/profile" class="block px-4 py-2 text-sm hover:bg-gray-50">
-                  Profile
-                </a>
-
-                <a href="/users/dashboard" class="block px-4 py-2 text-sm hover:bg-gray-50">
-                  Dashboard
-                </a>
-
-                <div class="border-t"></div>
-
-                <form action="/users/auth/logout" method="POST">
-                  <button class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">
-                    Logout
-                  </button>
-                </form>
-              </div>
-            </div>
-
             <% } else { %>
-            <a
-              href="/users/auth/login"
-              class="px-4 py-2 text-sm font-medium text-indigo-600 border border-indigo-600 rounded hover:bg-indigo-600 hover:text-white"
-            >
-              Login
-            </a>
+              <a
+                href="/users/auth/login"
+                class="px-4 py-2 text-sm font-medium text-indigo-600 border border-indigo-600 rounded hover:bg-indigo-600 hover:text-white"
+              >
+                Login
+              </a>
             <% } %>
           </div>
         </div>
       </div>
     </header>
-    <!-- ================= END HEADER ================= -->
 
     <!-- ================= MAIN ================= -->
-    <main class="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <main
+      class="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-4 gap-8"
+    >
       <!-- ================= BLOG CONTENT ================= -->
-      <article class="lg:col-span-3 bg-white rounded-2xl shadow-sm overflow-hidden">
+      <article
+        class="lg:col-span-3 bg-white rounded-2xl shadow-sm overflow-hidden"
+        data-blog-id="<%= blog._id %>"
+      >
         <!-- COVER IMAGE -->
         <img
           src="<%= blog?.coverImage?.url %>"
@@ -179,34 +202,34 @@
         />
 
         <div class="p-8 space-y-8">
-          <!-- STATUS BADGE -->
-          <!-- Status Badge -->
+          <!-- STATUS BADGE LOGIC -->
           <%
-  const status = blog?.status;
+            const status = blog?.status;
 
-  let badgeText = 'DRAFT';
-  let badgeClass = 'bg-gray-100 text-gray-600';
+            let badgeText = 'DRAFT';
+            let badgeClass = 'bg-gray-100 text-gray-600';
 
-  if (status) {
-    if (status.adminIsPublished && status.publisherIsPublished) {
-      badgeText = 'PUBLISHED';
-      badgeClass = 'bg-green-100 text-green-700';
-    } else if (
-      status.adminApprovalStatus === 'REJECTED' ||
-      status.publisherApprovalStatus === 'REJECTED'
-    ) {
-      badgeText = 'REJECTED';
-      badgeClass = 'bg-red-100 text-red-600';
-    } else {
-      badgeText = 'PENDING';
-      badgeClass = 'bg-yellow-100 text-yellow-700';
-    }
-  }
-%>
-
+            if (status) {
+              if (status.adminIsPublished && status.publisherIsPublished) {
+                badgeText = 'PUBLISHED';
+                badgeClass = 'bg-green-100 text-green-700';
+              } else if (
+                status.adminApprovalStatus === 'REJECTED' ||
+                status.publisherApprovalStatus === 'REJECTED'
+              ) {
+                badgeText = 'REJECTED';
+                badgeClass = 'bg-red-100 text-red-600';
+              } else {
+                badgeText = 'PENDING';
+                badgeClass = 'bg-yellow-100 text-yellow-700';
+              }
+            }
+          %>
 
           <!-- TITLE -->
-          <h1 class="text-3xl font-bold leading-tight"><%= blog.title %></h1>
+          <h1 class="text-3xl font-bold leading-tight">
+            <%= blog.title %>
+          </h1>
 
           <!-- META -->
           <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
@@ -223,27 +246,54 @@
             <span>•</span>
 
             <span>
-              <%= blog.publishedAt ? new Date(blog.publishedAt).toDateString() : 'Draft' %>
+              <%= blog.publishedAt
+                ? new Date(blog.publishedAt).toDateString()
+                : 'Draft' %>
             </span>
 
+            <!-- STATS -->
             <div class="flex flex-wrap items-center gap-3">
-              <!-- Views -->
               <div
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 text-xs"
+                id="views-wrapper"
+                class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 transition-all duration-300"
               >
-                <i class="fa-regular fa-eye"></i>
-                <span class="font-medium" id="blog-views"><%= blog.stats?.views || 0 %></span>
+                <svg
+                  id="views-icon"
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-4 h-4 transition-all duration-300"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5
+                       c4.478 0 8.268 2.943 9.542 7
+                       -1.274 4.057-5.064 7-9.542 7
+                       -4.477 0-8.268-2.943-9.542-7z"
+                  />
+                </svg>
+
+                <span id="blog-views" class="text-sm font-semibold">
+                  <%= blog.stats.views %>
+                </span>
               </div>
 
-              <!-- Likes -->
               <div
                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 text-red-600 text-xs"
               >
                 <i class="fa-regular fa-heart"></i>
-                <span class="font-medium"><%= stats.totalLikes %></span>
+                <span class="font-medium" id="total-likes"><%= stats.totalLikes %></span>
               </div>
 
-              <!-- Comments -->
               <div
                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-600 text-xs"
               >
@@ -251,113 +301,147 @@
                 <span class="font-medium"><%= stats.totalComments %></span>
               </div>
 
-              <!-- Bookmarks -->
               <div
                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-50 text-yellow-700 text-xs"
               >
                 <i class="fa-regular fa-bookmark"></i>
-                <span class="font-medium"><%= stats.totalBookmarks %></span>
+                <span class="font-medium" id="total-bookmarks"><%= stats.totalBookmarks %></span>
               </div>
             </div>
           </div>
 
           <!-- TAGS -->
           <% if (blog.tags?.length) { %>
-          <div class="flex flex-wrap gap-2">
-            <% blog.tags.forEach(tag => { %>
-            <a
-              href="/?tag=<%= encodeURIComponent(tag) %>"
-              class="text-xs px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
-            >
-              #<%= tag %>
-            </a>
-            <% }) %>
-          </div>
+            <div class="flex flex-wrap gap-2">
+              <% blog.tags.forEach(tag => { %>
+                <a
+                  href="/?tag=<%= encodeURIComponent(tag) %>"
+                  class="text-xs px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                >
+                  #<%= tag %>
+                </a>
+              <% }) %>
+            </div>
           <% } %>
 
-          <!-- LIKE / BOOKMARK ACTIONS -->
-          <div class="flex items-center gap-4 pt-4">
-            <!-- LIKE BUTTON -->
-            <form action="/blogs/<%= blog._id %>/like" method="POST">
-              <button
-                type="submit"
-                class="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-red-50"
-              >
-                <i class="fa-<%= isLiked ? 'solid' : 'regular' %> fa-heart text-red-600"></i>
-                <span class="text-sm font-medium"><%= stats.totalLikes %></span>
-              </button>
-            </form>
+          <!-- LIKE / BOOKMARK ACTIONS --> 
+<div class="flex items-center gap-4 pt-4">
 
-            <!-- BOOKMARK BUTTON -->
-            <form action="/blogs/<%= blog._id %>/bookmark" method="POST">
-              <button
-                type="submit"
-                class="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-indigo-50"
-              >
-                <i
-                  class="fa-<%= isBookmarked ? 'solid' : 'regular' %> fa-bookmark text-indigo-600"
-                ></i>
-                <span class="text-sm font-medium"><%= isBookmarked ? 'Saved' : 'Save' %></span>
-              </button>
-            </form>
-          </div>
+  <!-- LIKE BUTTON -->
+  <button
+    id="likeBtn"
+    data-blog-id="<%= blog._id %>"
+    class="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-red-50 transition"
+  >
+    <i
+      id="likeIcon"
+      class="fa-<%= isLiked ? 'solid' : 'regular' %> fa-heart text-red-600"
+    ></i>
+    <span id="likeCount" class="text-sm font-medium">
+      <%= stats.totalLikes %>
+    </span>
+  </button>
 
-          <hr />
+  <!-- BOOKMARK BUTTON -->
+  <button
+    id="bookmarkBtn"
+    data-blog-id="<%= blog._id %>"
+    class="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-indigo-50 transition"
+  >
+    <i
+      id="bookmarkIcon"
+      class="fa-<%= isBookmarked ? 'solid' : 'regular' %> fa-bookmark text-indigo-600"
+    ></i>
+    <span class="text-sm font-medium">
+      <%= isBookmarked ? 'Saved' : 'Save' %>
+    </span>
+  </button>
+
+</div>
+
+
+ 
+            <hr />
 
           <!-- BLOG CONTENT -->
-          <div class="prose prose-indigo max-w-none"><%- blog.content %></div>
+          <div class="prose prose-indigo max-w-none">
+            <%- blog.content %>
+          </div>
+          <section
+  id="ai-summary-section"
+  class="mt-8 hidden bg-indigo-50 border border-indigo-200 rounded-xl p-6"
+>
+  <h3 class="text-lg font-semibold mb-2 flex items-center gap-2">
+    🤖 AI Summary
+  </h3>
 
-          <!-- ================= COMMENTS ================= -->
+  <div
+    id="ai-summary-content"
+    class="text-gray-700 text-sm leading-relaxed"
+  ></div>
+</section>
+
+          <!-- COMMENTS -->
           <section class="pt-10">
-            <h3 class="text-xl font-semibold mb-4">Comments (<%= stats.totalComments %>)</h3>
+            <h3 class="text-xl font-semibold mb-4">
+              Comments (<%= stats.totalComments %>)
+            </h3>
 
             <% if (user) { %>
-            <form method="POST" action="/blogs/<%= blog._id %>/comments" class="mb-6">
-              <textarea
-                name="content"
-                rows="4"
-                required
-                placeholder="Write your comment..."
-                class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-500"
-              ></textarea>
+              <form id="commentForm" class="mb-6">
+  <textarea
+    id="commentInput"
+    name="content"
+    rows="4"
+    required
+    placeholder="Write your comment..."
+    class="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-500"
+  ></textarea>
 
-              <button
-                type="submit"
-                class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-              >
-                Post Comment
-              </button>
-            </form>
+  <button
+    type="submit"
+    class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+  >
+    Post Comment
+  </button>
+</form>
+
             <% } else { %>
-            <p class="text-sm text-gray-500">
-              <a href="/users/auth/login" class="text-indigo-600 underline">Login</a>
-              to write a comment
-            </p>
+              <p class="text-sm text-gray-500">
+                <a
+                  href="/users/auth/login"
+                  class="text-indigo-600 underline"
+                >
+                  Login
+                </a>
+                to write a comment
+              </p>
             <% } %>
 
-            <!-- COMMENT LIST -->
-            <div class="space-y-4">
+            <div id="commentsList" class="space-y-4">
               <% comments.forEach(comment => { %>
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <div class="flex items-center gap-2 text-sm text-gray-600">
-                  <img
-                    src="<%= comment.avatar || `https://ui-avatars.com/api/?name=${comment.username}&background=0D8ABC&color=fff` %>"
-                    class="w-6 h-6 rounded-full"
-                  />
-                  <span class="font-medium"><%= comment.username %></span>
-                  <span>• <%= comment.createdAt %></span>
-                  <span class="flex items-center gap-1 text-sm">
-                    •
-                    <span
-                      class="px-2 py-0.5 rounded-full font-medium text-xs <% if (comment.role === 'ADMIN') { %> bg-indigo-100 text-indigo-700 <% } else if (comment.role === 'AUTHOR') { %> bg-gray-100 text-gray-700 <% } else if (comment.role === 'PUBLISHER') { %> bg-yellow-100 text-yellow-700 <% } else { %> bg-slate-100 text-slate-600 <% } %>"
-                    >
-                      <%= comment.role %>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <div class="flex items-center gap-2 text-sm text-gray-600">
+                    <img
+                      src="<%= comment.avatar || `https://ui-avatars.com/api/?name=${comment.username}&background=0D8ABC&color=fff` %>"
+                      class="w-6 h-6 rounded-full"
+                    />
+                    <span class="font-medium"><%= comment.username %></span>
+                    <span>• <%= comment.createdAt %></span>
+                    <span class="flex items-center gap-1 text-sm">
+                      •
+                      <span
+                        class="px-2 py-0.5 rounded-full font-medium text-xs <% if (comment.role === 'ADMIN') { %> bg-indigo-100 text-indigo-700 <% } else if (comment.role === 'AUTHOR') { %> bg-gray-100 text-gray-700 <% } else if (comment.role === 'PUBLISHER') { %> bg-yellow-100 text-yellow-700 <% } else { %> bg-slate-100 text-slate-600 <% } %>"
+                      >
+                        <%= comment.role %>
+                      </span>
                     </span>
-                  </span>
-                </div>
+                  </div>
 
-                <p class="mt-2 text-sm text-gray-700"><%= comment.content %></p>
-              </div>
+                  <p class="mt-2 text-sm text-gray-700">
+                    <%= comment.content %>
+                  </p>
+                </div>
               <% }) %>
             </div>
           </section>
@@ -366,7 +450,6 @@
 
       <!-- ================= SIDEBAR ================= -->
       <aside class="space-y-6">
-        <!-- AUTHOR CARD -->
         <div class="bg-white p-6 rounded-xl shadow-sm">
           <div class="flex items-center gap-4">
             <img
@@ -380,20 +463,22 @@
           </div>
 
           <p class="text-sm text-gray-600 mt-4">
-            <%=blog.author.bio || 'Writing about backend engineering, system design & scalable APIs.' %>
+            <%= blog.author.bio || 'Writing about backend engineering, system design & scalable APIs.' %>
           </p>
         </div>
 
-        <!-- RECENT BLOGS -->
         <div class="bg-white p-6 rounded-xl shadow-sm">
           <h3 class="font-semibold mb-4">Recent Blogs</h3>
           <ul class="space-y-3">
             <% recentBlogs.forEach(rb => { %>
-            <li>
-              <a href="/blogs/<%= rb._id %>" class="text-sm font-medium hover:text-indigo-600">
-                <%= rb.title %>
-              </a>
-            </li>
+              <li>
+                <a
+                  href="/blogs/<%= rb._id %>"
+                  class="text-sm font-medium hover:text-indigo-600"
+                >
+                  <%= rb.title %>
+                </a>
+              </li>
             <% }) %>
           </ul>
         </div>
@@ -402,68 +487,239 @@
 
     <!-- ================= FOOTER ================= -->
     <%- include('./partials/footer.ejs') %>
+<div
+  id="ai-summary-popup"
+  class="fixed bottom-6 right-6 bg-white shadow-xl rounded-lg p-4 w-72 hidden z-50"
+>
+  <h4 class="font-semibold text-gray-800 mb-2">
+    🤖 AI Blog Summary
+  </h4>
+  <p class="text-sm text-gray-600 mb-3">
+    Want a quick summary of this blog?
+  </p>
 
-    <!-- ================= CLIENT JS ================= -->
-    <script>
-      const likeBtn = document.getElementById('likeBtn');
-      const bookmarkBtn = document.getElementById('bookmarkBtn');
+  <button
+    id="summarizeBtn"
+    class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700"
+  >
+    Summarize
+  </button>
+</div>
 
-      // LIKE
-      likeBtn?.addEventListener('click', async () => {
-        const blogId = likeBtn.dataset.blogId;
-        const res = await fetch(`/api/blogs/${blogId}/like`, { method: 'POST' });
-        const data = await res.json();
-
-        const likeIcon = document.getElementById('likeIcon');
-        const likeCount = document.getElementById('likeCount');
-
-        likeIcon.className = data.liked
-          ? 'fa-solid fa-heart text-red-600'
-          : 'fa-regular fa-heart text-red-600';
-
-        likeCount.textContent = data.likes;
-      });
-
-      // BOOKMARK
-      bookmarkBtn?.addEventListener('click', async () => {
-        const blogId = bookmarkBtn.dataset.blogId;
-        const res = await fetch(`/api/blogs/${blogId}/bookmark`, { method: 'POST' });
-        const data = await res.json();
-
-        const bookmarkIcon = document.getElementById('bookmarkIcon');
-        const bookmarkText = bookmarkBtn.querySelector('span');
-
-        bookmarkIcon.className = data.bookmarked
-          ? 'fa-solid fa-bookmark text-indigo-600'
-          : 'fa-regular fa-bookmark text-indigo-600';
-
-        bookmarkText.textContent = data.bookmarked ? 'Saved' : 'Save';
-      });
-    </script>
-
-    // Subscribe to blog views
+    <!-- ================= SOCKET / CLIENT JS ================= -->
     <script src="/socket.io/socket.io.js"></script>
-    <script>
-      const socket = io('http://localhost:5555');
-      const blogId = '<%= blog._id %>';
-      const sessionId = '<%= sessionID %>'; // pass req.sessionID from Express route
 
-      // Emit only once per tab using sessionStorage
-      if (!sessionStorage.getItem(`viewed-${blogId}`)) {
-        socket.emit('blogViewed', { blogId, sessionId });
-        sessionStorage.setItem(`viewed-${blogId}`, 'true');
+<script>
+      const article = document.querySelector('article[data-blog-id]');
+      const blogId = article?.dataset.blogId;
+
+      if (!blogId) {
+        console.warn('Blog ID not found, skipping view tracking');
+      } else {
+        const socket = io();
+
+        socket.on('connect', () => {
+          socket.emit('joinBlog', blogId);
+        });
+
+        let lastViews = Number(
+          document.getElementById('blog-views')?.textContent || 0
+        );
+
+        socket.on('viewsUpdated', data => {
+          if (typeof data.views !== 'number') return;
+
+          const viewsEl = document.getElementById('blog-views');
+          const wrapper = document.getElementById('views-wrapper');
+          const icon = document.getElementById('views-icon');
+
+          if (data.views > lastViews) {
+            wrapper.classList.add('views-animate');
+            icon.classList.add('icon-animate');
+
+            setTimeout(() => {
+              wrapper.classList.remove('views-animate');
+              icon.classList.remove('icon-animate');
+            }, 5000);
+          }
+
+          viewsEl.textContent = data.views;
+          lastViews = data.views;
+        });
+
+        fetch(`/blogs/${blogId}/views`, { method: 'POST' }).catch(console.error);
+      }
+</script>
+
+<script>
+  const likeBtn = document.getElementById("likeBtn");
+  const bookmarkBtn = document.getElementById("bookmarkBtn");
+
+  // LIKE
+  likeBtn?.addEventListener("click", async () => {
+    const blogId = likeBtn.dataset.blogId;
+    const res = await fetch(`/blogs/${blogId}/like`, { method: "POST" });
+    const data = await res.json();
+
+    const likeIcon = document.getElementById("likeIcon");
+    const likeCount = document.getElementById("likeCount");
+    const totalLikes = document.getElementById("total-likes");
+
+    likeIcon.className = data.liked
+      ? "fa-solid fa-heart text-red-600"
+      : "fa-regular fa-heart text-red-600";
+
+    likeCount.textContent = data.likes;
+    totalLikes.textContent = Number(totalLikes.textContent) + (data.liked ? 1 : -1);
+  });
+
+  // BOOKMARK
+  bookmarkBtn?.addEventListener("click", async () => {
+    const blogId = bookmarkBtn.dataset.blogId;
+    const res = await fetch(`/blogs/${blogId}/bookmark`, { method: "POST" });
+    const data = await res.json();
+
+    const bookmarkIcon = document.getElementById("bookmarkIcon");
+    const bookmarkText = bookmarkBtn.querySelector("span");
+    const totalBookmarks = document.getElementById("total-bookmarks");
+
+    bookmarkIcon.className = data.bookmarked
+      ? "fa-solid fa-bookmark text-indigo-600"
+      : "fa-regular fa-bookmark text-indigo-600";
+
+    bookmarkText.textContent = data.bookmarked ? "Saved" : "Save";
+
+    totalBookmarks.textContent = Number(totalBookmarks.textContent) + (data.bookmarked ? 1 : -1);
+
+  });
+</script>
+
+<script>
+  const commentForm = document.getElementById("commentForm");
+  const commentInput = document.getElementById("commentInput");
+  const commentsList = document.getElementById("commentsList");
+  const submitBtn = commentForm?.querySelector("button");
+
+  commentForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const content = commentInput.value.trim();
+    if (!content) return;
+
+    submitBtn.disabled = true;
+
+    try {
+      const blogId = "<%= blog._id %>";
+
+      const tempId = `temp-${Date.now()}`;
+commentsList.insertAdjacentHTML(
+  "afterbegin",
+  `<div id="${tempId}" class="bg-gray-100 p-4 rounded-lg opacity-70">
+     Posting comment...
+   </div>`
+);
+
+      const res = await fetch(`/blogs/${blogId}/comments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ content })
+      });
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          window.location.href = "/users/auth/login";
+          return;
+        }
+        throw new Error("Comment failed");
       }
 
-      // Listen for real-time updates
-      socket.on('updateViews', (data) => {
-        if (data.blogId === blogId) {
-          const viewsSpan = document.getElementById('blog-views');
-          if (viewsSpan) viewsSpan.textContent = data.views;
-        }
+      const data = await res.json();
+      document.getElementById(tempId)?.remove();
+
+      const commentHTML = `
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <div class="flex items-center gap-2 text-sm text-gray-600">
+            <img
+              src="${data.avatar}"
+              class="w-6 h-6 rounded-full"
+            />
+            <span class="font-medium">${data.username}</span>
+            <span>• just now</span>
+            <span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-600">
+              ${data.role}
+            </span>
+          </div>
+
+          <p class="mt-2 text-sm text-gray-700">
+            ${data.content}
+          </p>
+        </div>
+      `;
+
+      commentsList.insertAdjacentHTML("afterbegin", commentHTML);
+
+      commentInput.value = "";
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to post comment");
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+<%- include("./partials/toast-script.ejs") %>
+
+
+
+
+
+
+
+<script>
+  setTimeout(() => {
+    document
+      .getElementById("ai-summary-popup")
+      .classList.remove("hidden");
+  }, 2000);
+</script>
+
+<script>
+  const summarizeBtn = document.getElementById("summarizeBtn");
+
+  summarizeBtn.addEventListener("click", async () => {
+    summarizeBtn.innerText = "Analyzing...";
+    summarizeBtn.disabled = true;
+
+    const blogId = "<%= blog._id %>";
+
+    try {
+      const res = await fetch(`/ai/blog-summary/${blogId}`, {
+        method: "POST",
       });
 
-      socket.on('connect', () => console.log('Socket connected:', socket.id));
-      socket.on('connect_error', (err) => console.error('Socket error:', err));
-    </script>
+      const data = await res.json();
+
+      document.getElementById("ai-summary-content").textContent = data.summary;
+
+const section = document.getElementById("ai-summary-section");
+section.classList.remove("hidden");
+section.scrollIntoView({ behavior: "smooth" });
+
+document
+  .getElementById("ai-summary-popup")
+  .classList.add("hidden");
+    } catch (err) {
+      alert("Failed to generate summary");
+    }
+  });
+</script>
+
+
   </body>
 </html>
+
+

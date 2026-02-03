@@ -7,16 +7,30 @@ import { UserRole } from 'models/user.model.js';
 import {
   forgotPasswordSchema,
   loginSchema,
+  resendOtpSchema,
   resetPasswordSchema,
+  resetPasswordTokenSchema,
 } from 'validations/auth.validations.js';
 
 const router: Router = Router();
 
 router.get('/login', authorAuthController.getAuthorLoginPage);
 
-router.post('/login', validateRequest(loginSchema), authorAuthController.authorLoginHandler);
-
 router.get('/forgot-password', authorAuthController.getAuthorForgetPasswordPage);
+
+router.get(
+  '/reset-password',
+  validateRequest(resetPasswordTokenSchema, 'query'),
+  authorAuthController.getAuthorResetPasswordPage,
+);
+
+router.get(
+  '/resend-verification',
+  validateRequest(resendOtpSchema, 'query'),
+  authorAuthController.getAuthorResendVerificationPage,
+);
+
+router.post('/login', validateRequest(loginSchema), authorAuthController.authorLoginHandler);
 
 router.post(
   '/forgot-password',
@@ -24,7 +38,11 @@ router.post(
   authorAuthController.authorForgotPasswordHandler,
 );
 
-router.get('/reset-password', authorAuthController.getAuthorResetPasswordPage);
+router.post(
+  '/resend-verification',
+  validateRequest(resendOtpSchema),
+  authorAuthController.authorResendOtpHandler,
+);
 
 router.post(
   '/reset-password',

@@ -33,27 +33,35 @@ export const forgotPasswordSchema = z.object({
 });
 
 /**
+ * RESET PASSWORD TOKEN SCHEMA
+ */
+
+export const resetPasswordTokenSchema = z.object({
+  token: z
+    .string({
+      message: 'Reset token is required',
+    })
+    .min(20, { message: 'Invalid or expired reset token' })
+    .max(1024, { message: 'Invalid or expired reset token' }),
+});
+
+/**
  * Reset password validation schema
  */
-export const resetPasswordSchema = z
-  .object({
-    token: z
-      .string({
-        message: 'Reset token is required',
-      })
-      .min(20, { message: 'Invalid or expired reset token' })
-      .max(1024, { message: 'Invalid or expired reset token' }),
+export const resetPasswordSchema = z.object({
+  token: z
+    .string({
+      message: 'Reset token is required',
+    })
+    .min(20, { message: 'Invalid or expired reset token' })
+    .max(1024, { message: 'Invalid or expired reset token' }),
 
-    password: passwordSchema,
+  password: passwordSchema,
 
-    confirmPassword: z.string({
-      message: 'Confirm password is required',
-    }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  });
+  confirmPassword: z.string({
+    message: 'Confirm password is required',
+  }),
+});
 
 /**
  * Validate otp validation schema

@@ -23,4 +23,9 @@ export const registerNotificationEvents = (socket: Socket, io: Server) => {
     socket.join(`client:${clientId}`);
     Logger.info(`Client joined room client:${clientId}`);
   });
+
+  socket.on('joinBlog', (blogId: string) => {
+    socket.join(`blog:${blogId}`);
+    Logger.info(`blog details joined room:${blogId}`);
+  });
 };

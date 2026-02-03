@@ -9,7 +9,6 @@ import {
 import { CLOUDINARY_FOLDER_NAME } from 'constants/index.js';
 import type { Request, Response } from 'express';
 import userModel from 'models/user.model.js';
-import { TUserUpdateProfileDTO } from '@modules/publishers/profile/profile.validations.js';
 import notificationModel from 'models/notification.model.js';
 import authHelper from '@modules/auth/auth.helper.js';
 import refreshTokenModel from 'models/refreshToken.model.js';
@@ -173,10 +172,7 @@ class UserProfileController {
     }
   }
 
-  async updateUserProfileHandler(
-    req: Request<object, object, TUserUpdateProfileDTO>,
-    res: Response,
-  ) {
+  async updateUserProfileHandler(req: Request, res: Response) {
     try {
       Logger.info('Updating user profile...');
       const userId = req.user?._id;
@@ -310,7 +306,7 @@ class UserProfileController {
       Logger.error(`${(error as Error).message}`);
 
       req.flash('error', (error as Error).message);
-      return res.redirect('/users/auth/login');
+      return res.redirect('/users/profile/change-password');
     }
   }
 }

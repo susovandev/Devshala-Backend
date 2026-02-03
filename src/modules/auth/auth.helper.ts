@@ -4,13 +4,13 @@ import { IUserDocument, UserRole } from 'models/user.model.js';
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import { env } from '@config/env.js';
-import {
-  ACCESS_TOKEN_TTL,
-  FORGOT_PASSWORD_EXPIRY_MINUTES,
-  REFRESH_TOKEN_TTL,
-} from './auth.constants.js';
 import Logger from '@config/logger.js';
-import { PASSWORD_HASH_SALT_ROUNDS } from 'constants/index.js';
+import {
+  ACCESS_TOKEN_EXPIRATION_TIME,
+  PASSWORD_HASH_SALT_ROUNDS,
+  REFRESH_TOKEN_EXPIRATION_TIME,
+  RESET_PASSWORD_TOKEN_EXPIRATION_TIME,
+} from 'constants/index.js';
 
 interface IResetPasswordJwtPayload {
   sub: string;
@@ -84,7 +84,7 @@ class AuthHelper {
       role: user.role,
     };
     const accessToken = jwt.sign(payload, env.ACCESS_TOKEN_SECRET_KEY, {
-      expiresIn: ACCESS_TOKEN_TTL,
+      expiresIn: ACCESS_TOKEN_EXPIRATION_TIME,
     } as jwt.SignOptions);
     if (!accessToken) return null;
     return accessToken;
@@ -98,7 +98,7 @@ class AuthHelper {
       role: user.role,
     };
     const refreshToken = jwt.sign(payload, env.REFRESH_TOKEN_SECRET_KEY, {
-      expiresIn: REFRESH_TOKEN_TTL,
+      expiresIn: REFRESH_TOKEN_EXPIRATION_TIME,
     } as jwt.SignOptions);
     if (!refreshToken) return null;
     return refreshToken;
@@ -142,7 +142,7 @@ class AuthHelper {
     };
 
     const token = jwt.sign(payload, env.FORGOT_PASSWORD_SECRET_KEY, {
-      expiresIn: FORGOT_PASSWORD_EXPIRY_MINUTES,
+      expiresIn: RESET_PASSWORD_TOKEN_EXPIRATION_TIME,
     });
 
     if (!token) return null;

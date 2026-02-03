@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('./partials/head.ejs', { title: "404 | Page Not Found" }) %>
+
+<body class="bg-gradient-to-br from-indigo-50 via-white to-purple-50 min-h-screen flex items-center justify-center">
+
+  <!-- ===== WRAPPER ===== -->
+  <main class="max-w-3xl w-full px-6 text-center">
+
+    <!-- ===== SVG ILLUSTRATION ===== -->
+    <div class="relative mx-auto w-72 h-72 mb-8">
+      <svg
+        viewBox="0 0 400 400"
+        class="w-full h-full"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <!-- Floating Circle -->
+        <circle cx="200" cy="200" r="160" fill="#EEF2FF">
+          <animate
+            attributeName="r"
+            from="150"
+            to="165"
+            dur="4s"
+            repeatCount="indefinite"
+            direction="alternate"
+          />
+        </circle>
+
+        <!-- 404 Text -->
+        <text
+          x="50%"
+          y="52%"
+          text-anchor="middle"
+          dominant-baseline="middle"
+          font-size="96"
+          font-weight="800"
+          fill="#4F46E5"
+        >
+          404
+        </text>
+
+        <!-- Floating Dot -->
+        <circle cx="280" cy="120" r="6" fill="#6366F1">
+          <animate
+            attributeName="cy"
+            from="110"
+            to="140"
+            dur="3s"
+            repeatCount="indefinite"
+          />
+        </circle>
+
+        <circle cx="120" cy="280" r="5" fill="#A5B4FC">
+          <animate
+            attributeName="cx"
+            from="110"
+            to="140"
+            dur="3.5s"
+            repeatCount="indefinite"
+          />
+        </circle>
+      </svg>
+    </div>
+
+    <!-- ===== CONTENT ===== -->
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">
+      Oops! Page not found
+    </h1>
+
+    <p class="text-gray-500 max-w-md mx-auto mb-8">
+      The page you’re looking for doesn’t exist or may have been moved.
+      Let’s get you back on track.
+    </p>
+
+    <!-- ===== ACTIONS ===== -->
+    <div class="flex justify-center gap-4">
+      <a
+        href="/"
+        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition"
+      >
+        <i class="fa-solid fa-house text-xs"></i>
+        Go Home
+      </a>
+
+      <button
+        id="backBtn"
+        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-100 transition"
+      >
+        <i class="fa-solid fa-arrow-left text-xs"></i>
+        Go Back
+      </button>
+    </div>
+
+    <!-- ===== FOOTER TEXT ===== -->
+    <p class="text-xs text-gray-400 mt-10">
+      Error code: 404 • DevShala
+    </p>
+
+  </main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const backBtn = document.getElementById('backBtn');
+
+    if (!backBtn) return;
+
+    backBtn.addEventListener('click', () => {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.replace('/');
+      }
+    });
+  });
+</script>
+</body>
+</html>

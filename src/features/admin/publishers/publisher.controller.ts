@@ -49,7 +49,7 @@ class AdminPublisherController {
       return res.render('admin/publishers', {
         title: 'Admin | Publishers',
         pageTitle: 'Manage Publishers',
-        currentPath: '/admin/publishers',
+        currentPath: '/admins/publishers',
         admin: req.user,
         publishers,
         notifications: notifications,

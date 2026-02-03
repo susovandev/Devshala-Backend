@@ -18,6 +18,12 @@ import { verifyLimiter } from '@middlewares/rateLimit/verifyLimiter.js';
 const router: Router = Router();
 
 router.get('/register', userAuthController.getUserRegisterPage);
+router.get('/verify-otp', userAuthController.getUserVerifyOtpPage);
+router.get('/resend-otp', userAuthController.getUserResendOtpPage);
+router.get('/resend-verification', userAuthController.getUserResendVerificationPage);
+router.get('/login', userAuthController.getUserLoginPage);
+router.get('/forgot-password', userAuthController.getUserForgetPasswordPage);
+router.get('/reset-password', userAuthController.getUserResetPasswordPage);
 
 router.post(
   '/register',
@@ -26,8 +32,6 @@ router.post(
   userAuthController.userRegisterHandler,
 );
 
-router.get('/verify-otp', userAuthController.getUserVerifyOtpPage);
-
 router.post(
   '/verify-otp',
   verifyLimiter,
@@ -35,27 +39,21 @@ router.post(
   userAuthController.userVerifyOtpHandler,
 );
 
-router.get('/resend-otp', userAuthController.getUserResendOtpPage);
+router.post('/resend-otp', verifyLimiter, userAuthController.userResendOTPHandler);
 
 router.post(
-  '/resend-otp',
+  '/resend-verification',
   validateRequest(resendOtpSchema),
-  userAuthController.userResendOtpHandler,
+  userAuthController.userResendForgotPasswordLinkHandler,
 );
 
-router.get('/login', userAuthController.getUserLoginPage);
-
 router.post('/login', validateRequest(loginSchema), userAuthController.userLoginHandler);
-
-router.get('/forgot-password', userAuthController.getUserForgetPasswordPage);
 
 router.post(
   '/forgot-password',
   validateRequest(forgotPasswordSchema),
   userAuthController.userForgotPasswordHandler,
 );
-
-router.get('/reset-password', userAuthController.getUserResetPasswordPage);
 
 router.post(
   '/reset-password',

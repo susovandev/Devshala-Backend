@@ -5,7 +5,7 @@ import authHelper from '@modules/auth/auth.helper.js';
 import userModel, { IUserDocument } from 'models/user.model.js';
 import refreshTokenModel from 'models/refreshToken.model.js';
 import { env } from '@config/env.js';
-import { ACCESS_TOKEN_TTL } from '@modules/auth/auth.constants.js';
+import { ACCESS_TOKEN_EXPIRATION_TIME } from 'constants/index.js';
 
 export function redirectPage(req: Request, res: Response) {
   const segment = req.originalUrl.split('/')[1];
@@ -90,7 +90,7 @@ export const AuthGuardEJS = async (req: Request, res: Response, next: NextFuncti
     httpOnly: true,
     sameSite: 'strict',
     secure: env.NODE_ENV === 'production',
-    maxAge: ACCESS_TOKEN_TTL,
+    maxAge: ACCESS_TOKEN_EXPIRATION_TIME,
   });
 
   req.user = user as IUserDocument;

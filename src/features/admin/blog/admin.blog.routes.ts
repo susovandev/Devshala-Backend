@@ -10,7 +10,7 @@ router.get('/', adminBlogController.getAdminBlogPage);
 
 router.get('/create', adminBlogController.getAdminCreateBlogPage);
 
-router.patch('/:id/approval', adminBlogController.approveBlogHandlerByAdmin);
+router.get('/:id/edit', adminBlogController.getAdminBlogUpdatePage);
 
 router.post(
   '/create',
@@ -19,14 +19,14 @@ router.post(
   adminBlogController.createBlogHandler,
 );
 
+router.patch('/:id/approval', adminBlogController.approveBlogHandlerByAdmin);
+
 router.put(
   '/update',
   upload.single('coverImage'),
   validateRequest(updateBlogSchema),
   adminBlogController.updateBlogHandler,
 );
-
-router.get('/:id/edit', adminBlogController.getAdminBlogUpdatePage);
 
 router.put('/:id/edit', upload.single('coverImage'), adminBlogController.updateBlogHandler);
 

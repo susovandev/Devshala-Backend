@@ -10,5 +10,5 @@ export default function configureRoutes(app: Application) {
   app.use('/users', userRouter);
   app.use('/authors', authorRouter);
   app.use('/publishers', publisherRouter);
-  app.use('/admin', adminRouter);
+  app.use('/admins', adminRouter);
 }

@@ -2,21 +2,28 @@
 <html lang="en">
 <%- include("../../partials/head.ejs", {title}) %>
 
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+<body class="bg-gray-100 min-h-screen flex items-center justify-center ">
   <%- include("../../partials/toast.ejs") %>
 
   <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
 
+    <div class="flex justify-center mb-2">
+  <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full
+               bg-red-50 text-red-600 text-xs font-semibold tracking-wide">
+    <i class="fa-solid fa-shield-halved text-[10px]"></i>
+    ADMIN ACCESS
+  </span>
+</div>
     <!-- Logo -->
     <div class="text-center mb-6">
       <h1 class="text-3xl font-bold text-indigo-600">DevShala</h1>
       <p class="text-sm text-gray-500 mt-1">
-        Welcome back, login to your account
-      </p>
+  Secure administrator login
+</p>
     </div>
 
     <!-- Login Form -->
-    <form action="/admin/auth/login" method="POST" class="space-y-4">
+    <form action="/admins/auth/login" method="POST" class="space-y-4">
 
       <!-- Email -->
       <div>
@@ -49,7 +56,7 @@
       <!-- Forgot password -->
       <div class="flex items-center justify-end">
         <a
-          href="/admin/auth/forgot-password"
+          href="/admins/auth/forgot-password"
           class="text-sm text-indigo-600 hover:underline"
         >
           Forgot password?
@@ -61,25 +68,42 @@
         type="submit"
         class="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 transition"
       >
-        Login
+        Admin Login
       </button>
 
     </form>
+    <div class="mt-6 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-700 flex gap-2">
+  <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+  <span>
+    This area is restricted to administrators only.
+    Unauthorized access attempts are logged.
+  </span>
+</div>
 
     <!-- Divider -->
-    <div class="my-6 flex items-center">
-      <div class="flex-1 border-t"></div>
-      <span class="px-3 text-sm text-gray-400">OR</span>
-      <div class="flex-1 border-t"></div>
-    </div>
+        <!-- Divider -->
+    <div
+  class="mt-6 flex items-center justify-center gap-2
+         rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600"
+>
+  <svg class="h-4 w-4 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2"
+       viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round"
+          d="M13 16h-1v-4h-1m1-4h.01M12 18a9 9 0 100-18 9 9 0 000 18z"/>
+  </svg>
 
-    <!-- Register Redirect -->
-    <p class="text-center text-sm text-gray-600 mt-6">
-        Back to
-        <a href="/" class="text-indigo-600 font-medium hover:underline"> Home </a>
-    </p>
+  <span>
+    Access issues?
+    <a href="/support" class="font-medium text-indigo-600 hover:underline">
+      Reach our support team
+    </a>
+  </span>
+</div>
 
-  </div>
+</div>
+
+  <!-- BACKGROUND ANIMATION -->
+<%- include("../../partials/background.ejs") %>
 
 <%- include("../../partials/toast-script.ejs") %>
 </body>

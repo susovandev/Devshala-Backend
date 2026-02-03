@@ -43,8 +43,6 @@ class AdminCommentController {
         options,
       );
 
-      // console.log(`Comments: ${JSON.stringify(comments, null, 2)}`);
-
       // Get notifications
       const notifications = await notificationModel
         .find({ recipientId: adminId })
@@ -66,7 +64,7 @@ class AdminCommentController {
       return res.render('admin/comments', {
         title: 'Admin | Comments',
         pageTitle: 'Manage Comments',
-        currentPath: '/admin/comments',
+        currentPath: '/admins/comments',
         admin: req.user,
         comments,
         notifications,

@@ -6,8 +6,6 @@ import { UserRole } from 'models/user.model.js';
 
 const router: Router = Router();
 
-router.get();
-
 router.patch(
   '/authors/notifications/:id/read',
   AuthGuardEJS,

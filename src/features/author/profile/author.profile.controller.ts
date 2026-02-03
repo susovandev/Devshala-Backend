@@ -9,8 +9,8 @@ import {
 import { CLOUDINARY_FOLDER_NAME } from 'constants/index.js';
 import type { Request, Response } from 'express';
 import userModel from 'models/user.model.js';
-import { TUserUpdateProfileDTO } from '@modules/publishers/profile/profile.validations.js';
 import notificationModel from 'models/notification.model.js';
+import { redisDel, redisGet, redisSet } from '@libs/redis.js';
 
 export function expandDotNotation(input: Record<string, any>) {
   const output: Record<string, any> = {};
@@ -43,30 +43,42 @@ class AuthorProfileController {
     try {
       Logger.info('Getting Author profile page...');
 
-      if (!req.user) {
-        Logger.error('Author not found');
-        req.flash('error', 'Author not found please try again');
-        return res.redirect('/authors/auth/login');
+      const authorId = req?.user?._id;
+
+      const cacheKey = `author:profile:authorId:${authorId}`;
+
+      if (cacheKey) {
+        Logger.info('Fetching author profile from cache...');
+        const cachedData = await redisGet(cacheKey);
+        if (cachedData) {
+          return res.render('authors/profile', cachedData);
+        }
       }
 
-      // Get notifications
-      const notifications = await notificationModel
-        .find({
-          recipientId: req.user._id,
-        })
-        .sort({ createdAt: -1 })
-        .limit(8)
-        .lean();
+      /**
+       * Get notifications
+       * Count total notifications
+       * Count total unread notifications
+       */
+      const [notifications, totalNotifications, totalUnreadNotifications] = await Promise.all([
+        notificationModel.find({ recipientId: authorId }).sort({ createdAt: -1 }).limit(8).lean(),
+        notificationModel.countDocuments({ recipientId: authorId }),
+        notificationModel.countDocuments({ recipientId: authorId, isRead: false }),
+      ]);
 
-      // Get total notifications
-      const totalNotifications = await notificationModel.countDocuments({
-        recipientId: req.user._id,
-      });
-
-      const totalUnreadNotifications = await notificationModel.countDocuments({
-        recipientId: req.user._id,
-        isRead: false,
-      });
+      await redisSet(
+        cacheKey,
+        {
+          title: 'Author | Profile',
+          pageTitle: 'Author Profile',
+          currentPath: '/authors/profile',
+          author: req.user,
+          notifications,
+          totalUnreadNotifications,
+          totalNotifications,
+        },
+        300,
+      );
 
       return res.render('authors/profile', {
         title: 'Author | Profile',
@@ -87,15 +99,9 @@ class AuthorProfileController {
   async updateAuthorAvatarHandler(req: Request, res: Response) {
     try {
       Logger.info('Updating authors avatar...');
-      const user = req.user;
+      const user = req?.user;
+      const authorId = req?.user?._id;
       const avatarLocalFilePath = req.file?.path;
-
-      if (!user) {
-        Logger.warn('Author not found');
-
-        req.flash('error', 'User not found please try again');
-        return res.redirect('/authors/profile');
-      }
 
       // 1.Check if local file path is not found
       if (!avatarLocalFilePath) {
@@ -125,7 +131,7 @@ class AuthorProfileController {
 
       // 4. update user avatar in db
       const updatedResult = await userModel.findByIdAndUpdate(
-        user._id,
+        authorId,
         {
           avatarUrl: {
             url: cloudinaryResponse.secure_url,
@@ -136,6 +142,11 @@ class AuthorProfileController {
       );
       if (!updatedResult) {
         Logger.warn('Updating user avatar failed');
+
+        const cacheKey = `author:profile:authorId:${authorId}`;
+        if (cacheKey) {
+          await redisDel(cacheKey);
+        }
 
         req.flash('error', 'Something went wrong please try again');
         return res.redirect('/authors/profile');
@@ -161,7 +172,7 @@ class AuthorProfileController {
   }
 
   async updateAuthorProfileHandler(
-    req: Request<object, object, TUserUpdateProfileDTO>,
+    req: Request,
     res: Response,
   ) {
     try {

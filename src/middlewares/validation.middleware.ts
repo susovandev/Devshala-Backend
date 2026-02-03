@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
+
 type TLocation = 'body' | 'params' | 'query';
 
 export const validateRequest =
@@ -12,6 +13,7 @@ export const validateRequest =
       return res.redirect(req.originalUrl);
     }
 
-    req[location] = result.data;
+    res.locals[location] = result.data;
+
     next();
   };

@@ -1,0 +1,54 @@
+<!-- BACKGROUND ANIMATION -->
+<div class="fixed inset-0 -z-10 overflow-hidden">
+  <svg
+    class="absolute top-0 left-0 w-full h-full"
+    viewBox="0 0 1200 800"
+    preserveAspectRatio="xMidYMid slice"
+  >
+    <defs>
+      <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#6366f1" />
+        <stop offset="100%" stop-color="#ec4899" />
+      </linearGradient>
+
+      <linearGradient id="grad2" x1="100%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#22d3ee" />
+        <stop offset="100%" stop-color="#6366f1" />
+      </linearGradient>
+    </defs>
+
+    <!-- Blob 1 -->
+    <path
+      fill="url(#grad1)"
+      opacity="0.25"
+      d="M421,318Q362,386,291,423Q220,460,155,405Q90,350,107,269Q124,188,194,152Q264,116,335,145Q406,174,446,237Q486,300,421,318Z"
+    >
+      <animateTransform
+        attributeName="transform"
+        type="translate"
+        from="0 0"
+        to="30 -20"
+        dur="12s"
+        repeatCount="indefinite"
+        direction="alternate"
+      />
+    </path>
+
+    <!-- Blob 2 -->
+    <path
+      fill="url(#grad2)"
+      opacity="0.20"
+      d="M804,315Q779,430,666,455Q553,480,480,408Q407,336,438,251Q469,166,577,142Q685,118,760,180Q835,242,804,315Z"
+    >
+      <animateTransform
+        attributeName="transform"
+        type="translate"
+        from="0 0"
+        to="-40 25"
+        dur="15s"
+        repeatCount="indefinite"
+        direction="alternate"
+      />
+    </path>
+  </svg>
+</div>

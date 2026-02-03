@@ -13,7 +13,7 @@ router.get('/create', authorBlogsController.getAuthorCreateBlogPage);
 router.post(
   '/create',
   upload.single('coverImage'),
-  validateRequest(createBlogSchema),
+  // validateRequest(createBlogSchema),
   authorBlogsController.createBlogHandler,
 );
 

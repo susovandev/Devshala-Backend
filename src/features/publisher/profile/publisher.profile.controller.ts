@@ -9,7 +9,6 @@ import {
 import { CLOUDINARY_FOLDER_NAME } from 'constants/index.js';
 import type { Request, Response } from 'express';
 import userModel from 'models/user.model.js';
-import { TUserUpdateProfileDTO } from '@modules/publishers/profile/profile.validations.js';
 import notificationModel from 'models/notification.model.js';
 
 export function expandDotNotation(input: Record<string, any>) {
@@ -159,10 +158,7 @@ class PublisherProfileController {
     }
   }
 
-  async updatePublisherProfileHandler(
-    req: Request<object, object, TUserUpdateProfileDTO>,
-    res: Response,
-  ) {
+  async updatePublisherProfileHandler(req: Request, res: Response) {
     try {
       Logger.info('Updating publisher profile...');
       const userId = req.user?._id;

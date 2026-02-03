@@ -1,39 +1,62 @@
 import { Request, Response } from 'express';
 import Logger from '@config/logger.js';
 import userModel, { UserRole, UserStatus } from 'models/user.model.js';
-import authRepo from '@modules/auth/auth.repo.js';
 import { LoginStatus } from 'models/login.model.js';
 import authHelper from '@modules/auth/auth.helper.js';
 import refreshTokenModel from 'models/refreshToken.model.js';
 import { env } from '@config/env.js';
-import { ACCESS_TOKEN_TTL, REFRESH_TOKEN_TTL } from '@modules/auth/auth.constants.js';
 import {
+  ACCESS_TOKEN_EXPIRATION_TIME,
   REFRESH_TOKEN_EXPIRATION_TIME,
   RESET_PASSWORD_TOKEN_EXPIRATION_TIME,
 } from 'constants/index.js';
+import forgotPasswordEmailTemplate from 'mail/templates/auth/forgotPasswordEmail.template.js';
+import emailModel, { EmailSource, EmailType } from 'models/email.model.js';
 import verificationCodeModel, {
   VerificationStatus,
   VerificationType,
 } from 'models/verificationCode.model.js';
-import emailModel from 'models/email.model.js';
-import forgotPasswordEmailTemplate from 'mail/templates/auth/forgotPasswordEmail.template.js';
-import { sendEmailService } from 'mail/index.js';
+import { logoutCleanupQueue } from 'queues/logoutCleanup.queue.js';
+import { sendEmailQueue } from 'queues/sendEmail.queue.js';
+import { loginTrackerQueue } from 'queues/loginTracker.queue.js';
 
 class PublisherAuthController {
   async getPublisherLoginPage(req: Request, res: Response) {
-    try {
-      Logger.info('Getting publisher login page...');
+    Logger.info('Getting Publisher login page...');
 
-      return res.render('publishers/auth/login', {
-        title: 'Publisher | Login',
-        pageTitle: 'Publisher Login',
-      });
-    } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
+    return res.render('publishers/auth/login', {
+      title: 'Publisher | Login',
+      pageTitle: 'Publisher Login',
+    });
+  }
 
-      req.flash('error', (error as Error).message);
-      return res.redirect('/publishers/auth/register');
-    }
+  async getPublisherForgetPasswordPage(req: Request, res: Response) {
+    Logger.info('Getting Publisher forget password page...');
+
+    return res.render('publishers/auth/forgot-password', {
+      title: 'Publisher | Forgot Password',
+      pageTitle: 'Publisher Forgot Password',
+    });
+  }
+
+  async getPublisherResetPasswordPage(req: Request, res: Response) {
+    Logger.info('Getting Publisher reset password page...');
+
+    return res.render('publishers/auth/reset-password', {
+      title: 'Publisher | Reset Password',
+      pageTitle: 'Publisher Reset Password',
+      token: req.query.token,
+    });
+  }
+
+  async getPublisherResendVerificationPage(req: Request, res: Response) {
+    Logger.info('Getting Publisher resend verification page...');
+
+    return res.render('publishers/auth/resend-verification', {
+      title: 'Publisher | Resend Verification',
+      pageTitle: 'Publisher Resend Verification',
+      userId: req.query.userId,
+    });
   }
 
   async publisherLoginHandler(req: Request, res: Response) {
@@ -43,76 +66,67 @@ class PublisherAuthController {
       const ip = req.ip as string;
       const userAgent = req.headers['user-agent'] as string;
       const { email, password } = req.body;
+
       const normalizedEmail = email.trim().toLowerCase();
 
-      // 1. Find user by email
+      //Find user by email
       const publisher = await userModel
         .findOne({ email: normalizedEmail, isEmailVerified: true, role: UserRole.PUBLISHER })
         .select('+passwordHash');
-      if (!publisher) {
-        Logger.warn('publisher not found');
 
-        await authRepo.createLoginRecord({
+      if (!publisher) {
+        await loginTrackerQueue.add('login-tracker', {
+          userId: 'GUEST',
           lastLoginIp: ip,
           lastLoginUserAgent: userAgent,
           lastLoginStatus: LoginStatus.FAILED,
         });
 
-        req.flash('error', 'Invalid email or password');
-        return res.redirect('/publishers/auth/login');
+        throw new Error('Invalid email or password');
       }
 
-      // 2. Check user is blocked or disabled or deleted
+      //Check user is blocked or disabled or deleted
       if (publisher.status !== UserStatus.ACTIVE) {
-        Logger.warn('User not found');
-
-        await authRepo.createLoginRecord({
+        await loginTrackerQueue.add('login-tracker', {
           userId: publisher._id.toString(),
           lastLoginIp: ip,
           lastLoginUserAgent: userAgent,
           lastLoginStatus: LoginStatus.FAILED,
         });
 
-        req.flash('error', 'Your account is not active');
-        return res.redirect('/publishers/auth/login');
+        throw new Error('Your account is not active');
       }
 
-      // 3. Compare password
+      //Compare password
       const isPasswordCompareCorrect = await authHelper.comparePasswordHelper(
         password,
         publisher.passwordHash,
       );
       if (!isPasswordCompareCorrect) {
-        Logger.warn('Password is incorrect');
-
-        await authRepo.createLoginRecord({
+        await loginTrackerQueue.add('login-tracker', {
           userId: publisher._id.toString(),
           lastLoginIp: ip,
           lastLoginUserAgent: userAgent,
           lastLoginStatus: LoginStatus.FAILED,
         });
 
-        req.flash('error', 'Invalid email or password');
-        return res.redirect('/publishers/auth/login');
+        throw new Error('Invalid email or password');
       }
 
-      // 4. Generate JWT tokens
+      //Generate JWT tokens
       const tokens = authHelper.signAccessTokenAndRefreshToken(publisher);
       if (!tokens) {
         Logger.warn('Generating JWT tokens failed');
-
-        await authRepo.createLoginRecord({
+        await loginTrackerQueue.add('login-tracker', {
           userId: publisher._id.toString(),
           lastLoginIp: ip,
           lastLoginUserAgent: userAgent,
           lastLoginStatus: LoginStatus.FAILED,
         });
-
-        req.flash('error', 'Error occurred while logging in please try again');
-        return res.redirect('/publishers/auth/login');
+        throw new Error('Error occurred while logging in please try again');
       }
 
-      // 5. Store refresh token in db
+      // Store refresh token in db
       const newRefreshTokenRecord = await refreshTokenModel.create({
         userId: publisher._id,
         tokenHash: tokens.refreshToken,
@@ -120,68 +134,38 @@ class PublisherAuthController {
         ip,
         userAgent,
       });
-      if (!newRefreshTokenRecord) {
-        Logger.warn('Storing refresh token failed');
 
-        req.flash('error', 'Error occurred while logging in please try again');
-        return res.redirect('/publishers/auth/login');
-      }
+      Logger.debug('Publisher has been logged in successfully');
 
-      Logger.debug('User has been logged in successfully');
-
-      // 6. Create login record in db
-      const loginRecord = await authRepo.createLoginRecord({
+      await loginTrackerQueue.add('login-tracker', {
         userId: publisher._id.toString(),
         lastLoginIp: ip,
         lastLoginUserAgent: userAgent,
         lastLoginStatus: LoginStatus.SUCCESS,
+        lastLoginAt: new Date(),
       });
-      if (!loginRecord) {
-        Logger.warn('Storing login record failed');
 
-        req.flash('error', 'Error occurred while logging in please try again');
-        return res.redirect('/publishers/auth/login');
-      }
-
-      Logger.debug('Publisher login record has been created successfully');
-
-      // 7. Send accessToken and refreshToken to client cookies
+      //Send accessToken and refreshToken to client cookies
       req.flash('success', 'Logged in successfully');
       return res
         .cookie('accessToken', tokens.accessToken, {
           httpOnly: true,
           secure: env.NODE_ENV === 'production',
           sameSite: 'strict',
-          maxAge: ACCESS_TOKEN_TTL,
+          maxAge: ACCESS_TOKEN_EXPIRATION_TIME,
         })
         .cookie('refreshToken', tokens.refreshToken, {
           httpOnly: true,
           secure: env.NODE_ENV === 'production',
           sameSite: 'strict',
-          maxAge: REFRESH_TOKEN_TTL,
+          maxAge: REFRESH_TOKEN_EXPIRATION_TIME,
         })
-        .redirect('/publishers/profile');
+        .redirect('/publishers/dashboard');
     } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
+      Logger.error(`${(error as Error).message}`);
 
       req.flash('error', (error as Error).message);
-      return res.redirect('/publishers/auth/forgot-password');
-    }
-  }
-
-  async getUserForgetPasswordPage(req: Request, res: Response) {
-    try {
-      Logger.info('Getting publisher forget password page...');
-
-      return res.render('publishers/auth/forgot-password', {
-        title: 'Publisher | Forgot Password',
-        pageTitle: 'Publisher Forgot Password',
-      });
-    } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
-      return res.redirect('/publishers/auth/forgot-password');
+      return res.redirect('/publishers/auth/login');
     }
   }
 
@@ -193,7 +177,7 @@ class PublisherAuthController {
 
       const normalizedEmail = email.trim().toLowerCase();
 
-      // 1. Check user exist or not
+      //Check user exist or not
       const user = await userModel.findOne({
         email: normalizedEmail,
         isEmailVerified: true,
@@ -201,13 +185,10 @@ class PublisherAuthController {
         status: UserStatus.ACTIVE,
       });
       if (!user) {
-        Logger.warn('Publisher not found');
-
-        req.flash('error', 'Invalid email or your account is not active');
-        return res.redirect('/publishers/auth/forgot-password');
+        throw new Error('Please register first');
       }
 
-      //2 Get latest verification code
+      // Get latest verification code
       const latestOtp = await verificationCodeModel
         .findOne({
           userId: user._id.toString(),
@@ -217,19 +198,16 @@ class PublisherAuthController {
 
       const now = new Date();
 
-      //3. If OTP exists & still valid
+      // If OTP exists & still valid
       if (
         latestOtp &&
         latestOtp.verificationStatus === VerificationStatus.PENDING &&
         latestOtp.verificationCodeExpiration > now
       ) {
-        Logger.warn('OTP resend blocked — OTP still valid');
-
-        req.flash('error', 'OTP already sent. Please check your email');
-        return res.redirect('/publishers/auth/forgot-password');
+        throw new Error('OTP already sent. Please check your email');
       }
 
-      //4: Invalidate all previous OTPs
+      //Invalidate all previous OTPs
       await verificationCodeModel.updateMany(
         {
           userId: user._id.toString(),
@@ -241,25 +219,21 @@ class PublisherAuthController {
         },
       );
 
-      //5: Generate new OTP
+      // Generate new OTP
       const rawToken = authHelper.generateResetPasswordSecret(user);
       if (!rawToken) {
         Logger.warn('OTP generation failed');
-
-        req.flash('error', 'Something went wrong please try again');
-        return res.redirect('/publishers/auth/login');
+        throw new Error('Something went wrong please try again');
       }
 
-      // 6.Hashed otp before storing in db
+      // Hashed otp before storing in db
       const hashedOtp = authHelper.hashVerificationCodeHelper(rawToken);
       if (!hashedOtp) {
         Logger.warn('OTP hashing failed');
-
-        req.flash('error', 'Something went wrong please try again');
-        return res.redirect('/publishers/auth/login');
+        throw new Error('Something went wrong please try again');
       }
 
-      // 7: Store new OTP
+      //Store new OTP
       await verificationCodeModel.findOneAndUpdate(
         {
           userId: user._id,
@@ -278,183 +252,224 @@ class PublisherAuthController {
         },
       );
 
-      Logger.debug('Publishers reset password token has been created successfully');
+      Logger.debug('Publisher reset password token has been created successfully');
 
-      // 5. Send reset password token to user email
+      // Send reset password token to user email
       const resetPasswordLink = `${env.CLIENT_URL}/publishers/auth/reset-password?token=${rawToken}`;
 
       // Store Mail data in db
       const mailRecord = await emailModel.create({
-        recipient: user._id,
-        recipientEmail: user.email,
+        recipient: user?._id,
+        recipientEmail: user?.email,
         subject: 'Password Reset Request',
-        source: UserRole.USER,
+        type: EmailType.PASSWORD_RESET,
+        source: EmailSource.SYSTEM,
         sendAt: new Date(),
         body: forgotPasswordEmailTemplate({
-          username: user.username,
+          username: user?.username,
           reset_url: resetPasswordLink,
-          expiry_minutes: RESET_PASSWORD_TOKEN_EXPIRATION_TIME / 60,
+          expiry_minutes: RESET_PASSWORD_TOKEN_EXPIRATION_TIME / 1000 / 60,
           year: new Date().getFullYear(),
         }),
       });
-      if (!mailRecord) {
-        Logger.warn('Storing mail data failed');
 
-        req.flash('error', 'Error occurred while resetting password please try again');
-        return res.redirect('/publishers/auth/forgot-password');
-      }
-
-      // TODO: Send reset password email
-      await sendEmailService({
-        recipient: user.email,
-        subject: mailRecord.subject,
-        htmlTemplate: mailRecord.body,
+      await sendEmailQueue.add('send-email', {
+        emailId: mailRecord._id.toString(),
       });
 
-      Logger.debug('Email sent for forgot password');
-
       req.flash('success', 'Password reset email has been sent to your email');
-      res.redirect('/publishers/auth/forgot-password');
+      res.redirect(`/publishers/auth/resend-verification?userId=${user._id.toString()}`);
     } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
+      Logger.error(`${(error as Error).message}`);
 
       req.flash('error', (error as Error).message);
       return res.redirect('/publishers/auth/forgot-password');
     }
   }
 
-  async getPublisherResetPasswordPage(req: Request, res: Response) {
-    try {
-      Logger.info('Getting publisher reset password page...');
+  async publisherResendOtpHandler(req: Request, res: Response) {
+    const { userId } = req.body;
 
-      return res.render('publishers/auth/reset-password', {
-        title: 'Publisher | Reset Password',
-        pageTitle: 'Publisher Reset Password',
-        token: req.query.token,
+    try {
+      Logger.info('Resending Publisher OTP...');
+
+      const user = await userModel.findOne({
+        _id: userId,
+        role: UserRole.PUBLISHER,
       });
+
+      if (!user) {
+        throw new Error(
+          'Your account is not eligible for OTP verification, please contact support',
+        );
+      }
+
+      const latestOtp = await verificationCodeModel
+        .findOne({
+          userId: user._id.toString(),
+          verificationType: VerificationType.PASSWORD_RESET,
+        })
+        .sort({ createdAt: -1 });
+
+      const now = new Date();
+
+      if (
+        latestOtp &&
+        latestOtp.verificationStatus === VerificationStatus.PENDING &&
+        latestOtp.verificationCodeExpiration > now
+      ) {
+        throw new Error('OTP already sent. Please wait before requesting a new one.');
+      }
+
+      await verificationCodeModel.updateMany(
+        {
+          userId: user._id.toString(),
+          verificationType: VerificationType.PASSWORD_RESET,
+          verificationStatus: VerificationStatus.PENDING,
+        },
+        { $set: { verificationStatus: VerificationStatus.EXPIRED } },
+      );
+
+      const rawToken = authHelper.generateResetPasswordSecret(user);
+      const hashedOtp = authHelper.hashVerificationCodeHelper(rawToken as string);
+
+      await verificationCodeModel.findOneAndUpdate(
+        { userId: user._id, verificationType: VerificationType.PASSWORD_RESET },
+        {
+          $set: {
+            verificationCode: hashedOtp,
+            verificationCodeExpiration: new Date(Date.now() + RESET_PASSWORD_TOKEN_EXPIRATION_TIME),
+            verificationStatus: VerificationStatus.PENDING,
+          },
+        },
+        { upsert: true, new: true },
+      );
+
+      const resetPasswordLink = `${env.CLIENT_URL}/publishers/auth/reset-password?token=${rawToken}`;
+
+      const mailRecord = await emailModel.create({
+        recipient: user._id,
+        recipientEmail: user.email,
+        subject: 'Password Reset Request',
+        type: EmailType.PASSWORD_RESET,
+        source: EmailSource.SYSTEM,
+        sendAt: new Date(),
+        body: forgotPasswordEmailTemplate({
+          username: user.username,
+          reset_url: resetPasswordLink,
+          expiry_minutes: RESET_PASSWORD_TOKEN_EXPIRATION_TIME / 1000 / 60,
+          year: new Date().getFullYear(),
+        }),
+      });
+
+      await sendEmailQueue.add('send-email', {
+        emailId: mailRecord._id.toString(),
+      });
+
+      req.flash('success', 'A new OTP has been sent to your email');
+      return res.redirect(`/publishers/auth/resend-verification?userId=${user._id.toString()}`);
     } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
+      Logger.warn((error as Error).message);
 
       req.flash('error', (error as Error).message);
-      return res.redirect('/publishers/auth/reset-password');
+      return res.redirect(`/publishers/auth/resend-verification?userId=${userId}`);
     }
   }
 
   async publisherResetPasswordHandler(req: Request, res: Response) {
+    const { token, password, confirmPassword } = req.body;
+
     try {
-      const { token, password, confirmPassword } = req.body;
+      Logger.info('Publisher reset password request received');
 
       if (password !== confirmPassword) {
-        req.flash('error', 'Password and confirm password do not match');
-        return res.redirect(`/publishers/auth/reset-password?token=${token}`);
+        throw new Error('Password and confirm password are not same');
       }
 
-      // 1. Verify JWT reset token
-      const tokenPayload = authHelper.verifyResetPasswordSecret(token);
-      if (!tokenPayload?.sub) {
-        req.flash('error', 'Reset token is invalid or expired');
-        return res.redirect(`/publishers/auth/reset-password?token=${token}`);
-      }
-
-      // One more check for user enter previous password
-      const user = await userModel.findById(tokenPayload.sub);
-      if (!user) {
-        req.flash('error', 'User not found');
-        return res.redirect(`/publishers/auth/reset-password?token=${token}`);
-      }
-
-      const isPasswordMatch = await authHelper.comparePasswordHelper(password, user.passwordHash);
-      if (isPasswordMatch) {
-        req.flash('error', 'New password cannot be same as old password');
-        return res.redirect(`/publishers/auth/reset-password?token=${token}`);
-      }
-
-      // 2.Hash incoming token for DB comparison
       const hashedToken = authHelper.hashVerificationCodeHelper(token);
 
-      // 3. Validate OTP record
       const otpRecord = await verificationCodeModel.findOne({
-        userId: tokenPayload.sub,
-        verificationType: VerificationType.PASSWORD_RESET,
         verificationCode: hashedToken,
+        verificationType: VerificationType.PASSWORD_RESET,
         verificationStatus: VerificationStatus.PENDING,
         verificationCodeExpiration: { $gt: new Date() },
       });
 
       if (!otpRecord) {
-        req.flash('error', 'Reset token is invalid or expired');
-        return res.redirect(`/publishers/auth/reset-password?token=${token}`);
+        throw new Error('OTP is invalid or expired');
       }
 
-      // 4. Hash new password
+      const tokenPayload = authHelper.verifyResetPasswordSecret(token);
+      if (!tokenPayload?.sub) {
+        throw new Error('Reset token is invalid or expired');
+      }
+
+      const user = await userModel.findById(tokenPayload.sub).select('+passwordHash');
+
+      if (!user || user.role !== UserRole.PUBLISHER) {
+        throw new Error('Unauthorized password reset attempt');
+      }
+
+      const isPasswordMatch = await authHelper.comparePasswordHelper(password, user.passwordHash);
+
+      if (isPasswordMatch) {
+        throw new Error('New password cannot be same as old password');
+      }
+
       const passwordHash = await authHelper.hashPasswordHelper(password);
-      if (!passwordHash) {
-        req.flash('error', 'Failed to process password');
-        return res.redirect(`/publishers/auth/reset-password?token=${token}`);
-      }
 
-      // 5. Update password
       const updatedUser = await userModel.findByIdAndUpdate(
-        tokenPayload.sub,
+        user._id,
         { passwordHash },
         { new: true },
       );
 
-      if (!updatedUser) {
-        req.flash('error', 'Failed to update password');
-        return res.redirect(`/publishers/auth/reset-password?token=${token}`);
-      }
+      await Promise.all([
+        refreshTokenModel.deleteMany({ userId: updatedUser?._id }),
+        verificationCodeModel.updateMany(
+          {
+            userId: updatedUser?._id,
+            verificationType: VerificationType.PASSWORD_RESET,
+          },
+          { $set: { verificationStatus: VerificationStatus.USED } },
+        ),
+      ]);
 
-      // 6. Invalidate all sessions
-      await refreshTokenModel.deleteMany({ userId: updatedUser._id });
-
-      // 7. Mark OTP as USED
-      await verificationCodeModel.updateOne(
-        { _id: otpRecord._id },
-        { $set: { verificationStatus: VerificationStatus.USED } },
-      );
+      res.clearCookie('refreshToken');
+      res.clearCookie('accessToken');
 
       req.flash('success', 'Password reset successfully');
       return res.redirect('/publishers/auth/login');
     } catch (error) {
       Logger.error((error as Error).message);
 
-      req.flash('error', 'Something went wrong');
-      return res.redirect('/publishers/auth/login');
+      req.flash('error', (error as Error).message);
+      return res.redirect(`/publishers/auth/reset-password?token=${token}`);
     }
   }
 
   async publisherLogoutHandler(req: Request, res: Response) {
     try {
       Logger.info('User logging out...');
-      const userId = req.user?._id || req.session.user?._id;
-
-      // 1.Validate user id
+      const userId = req?.user?._id;
       if (!userId) {
-        Logger.warn('User id not found');
-
-        req.flash('error', 'Some error occurred please try again');
-        return res.redirect('/publishers/profile');
+        return res.redirect('/publishers/auth/login');
       }
-      // 2. Delete refresh token
-      const deletedRefreshTokenRecord = await refreshTokenModel.deleteMany({
-        userId,
+
+      // TODO: BULL MQ JOB FOR DELETING REFRESH TOKEN, EMAILS, VERIFICATION CODES
+      await logoutCleanupQueue.add('cleanup-auth-data', {
+        userId: userId.toString(),
       });
-      if (!deletedRefreshTokenRecord) {
-        Logger.warn('Deleting refresh token record failed');
 
-        req.flash('error', 'Some error occurred please try again');
-        return res.redirect('/publishers/profile');
-      }
-
-      // 3. Clear cookies
       req.flash('success', 'Logged out successfully');
+
+      //Clear cookies
       return res
         .clearCookie('refreshToken')
         .clearCookie('accessToken')
         .redirect('/publishers/auth/login');
     } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
+      Logger.error(`${(error as Error).message}`);
 
       req.flash('error', (error as Error).message);
       return res.redirect('/publishers/auth/login');

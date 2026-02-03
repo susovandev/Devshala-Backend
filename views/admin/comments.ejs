@@ -68,9 +68,9 @@
           <p class="text-sm font-medium text-gray-800 flex items-center gap-2">
             <%= comment.user.username %>
 
-            <% if (comment.user.role === 'ADMIN') { %>
+            <% if (comment.user.role === 'admin') { %>
               <span class="px-2 py-0.5 text-xs rounded bg-indigo-50 text-indigo-600">Admin</span>
-            <% } else if (comment.user.role === 'AUTHOR') { %>
+            <% } else if (comment.user.role === 'author') { %>
               <span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600">Author</span>
             <% } else { %>
               <span class="px-2 py-0.5 text-xs rounded bg-yellow-50 text-yellow-700">User</span>
@@ -213,7 +213,7 @@ document.addEventListener('click', e => {
 document.getElementById('submitReason').addEventListener('click', async () => {
   const reason = document.getElementById('moderationReason').value;
 
-  await fetch(`/admin/comments/${selectedCommentId}/moderate`, {
+  await fetch(`/admins/comments/${selectedCommentId}/moderate`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status: selectedStatus, reason })

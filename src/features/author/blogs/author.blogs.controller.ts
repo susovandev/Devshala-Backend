@@ -9,113 +9,119 @@ import { CloudinaryResourceType, uploadOnCloudinary } from '@libs/cloudinary.js'
 import { CLOUDINARY_FOLDER_NAME } from 'constants/index.js';
 import userModel, { UserRole } from 'models/user.model.js';
 import { getSocketIO } from 'socket/socket.instance.js';
-import emailModel, { EmailStatus } from 'models/email.model.js';
+import emailModel, { EmailSource, EmailStatus, EmailType } from 'models/email.model.js';
 import { sendEmailService } from 'mail/index.js';
 import { blogUnwantedContentTemplate } from 'mail/templates/blog/unwantedContent.template.js';
 import { env } from '@config/env.js';
 import { analyzeBlog } from '@libs/blogReviewer.js';
+import { redisGet, redisSet } from '@libs/redis.js';
 
 class AuthorBlogController {
   async getAuthorBlogsPage(req: Request, res: Response) {
-    try {
-      Logger.info('Getting author blogs page...');
+    Logger.info('Getting author blogs page...');
 
-      // Check if author is logged in
-      if (!req.user) {
-        throw new Error('Access denied');
+    const authorId = req?.user?._id;
+    const page = Number(req.query.page) || 1;
+    const limit = 10;
+
+    const cacheKey = `author:blogs:page:${page}:limit:${limit}:authorId:${authorId}`;
+
+    if (cacheKey) {
+      Logger.info('Fetching author blogs from cache...');
+      const cachedData = await redisGet(cacheKey);
+      if (cachedData) {
+        return res.render('authors/blogs', cachedData);
       }
+    }
 
-      const authorId = req.user._id;
-
-      const page = Number(req.query.page) || 1;
-      const limit = 10;
-
-      // Aggregate blogs
-      const aggregate = blogModel.aggregate([
-        {
-          $match: {
-            authorId: new mongoose.Types.ObjectId(authorId),
-          },
+    // Aggregate blogs
+    const aggregate = blogModel.aggregate([
+      {
+        $match: {
+          authorId: new mongoose.Types.ObjectId(authorId),
         },
-        {
-          $lookup: {
-            from: 'categories',
-            localField: 'categories',
-            foreignField: '_id',
-            as: 'categories',
-          },
+      },
+      {
+        $lookup: {
+          from: 'categories',
+          localField: 'categories',
+          foreignField: '_id',
+          as: 'categories',
         },
-        {
-          $lookup: {
-            from: 'likes',
-            localField: '_id',
-            foreignField: 'blogId',
-            as: 'likes',
-          },
+      },
+      {
+        $lookup: {
+          from: 'likes',
+          localField: '_id',
+          foreignField: 'blogId',
+          as: 'likes',
         },
-        {
-          $lookup: {
-            from: 'comments',
-            localField: '_id',
-            foreignField: 'blogId',
-            as: 'comments',
-          },
+      },
+      {
+        $lookup: {
+          from: 'comments',
+          localField: '_id',
+          foreignField: 'blogId',
+          as: 'comments',
         },
-        {
-          $lookup: {
-            from: 'bookmarks',
-            localField: '_id',
-            foreignField: 'blogId',
-            as: 'bookmarks',
-          },
+      },
+      {
+        $lookup: {
+          from: 'bookmarks',
+          localField: '_id',
+          foreignField: 'blogId',
+          as: 'bookmarks',
         },
-        {
-          $addFields: {
-            likeCount: { $size: '$likes' },
-            commentCount: { $size: '$comments' },
-            bookmarkCount: { $size: '$bookmarks' },
-          },
+      },
+      {
+        $addFields: {
+          likeCount: { $size: '$likes' },
+          commentCount: { $size: '$comments' },
+          bookmarkCount: { $size: '$bookmarks' },
         },
-        {
-          $sort: {
-            createdAt: -1,
-          },
+      },
+      {
+        $sort: {
+          createdAt: -1,
         },
-        {
-          $project: {
+      },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          slug: 1,
+          categories: {
             _id: 1,
-            title: 1,
-            slug: 1,
-            categories: {
-              _id: 1,
-              name: 1,
-            },
-            tags: 1,
-            status: 1,
-            stats: 1,
-            likeCount: 1,
-            commentCount: 1,
-            bookmarkCount: 1,
-            createdAt: 1,
-            publishedAt: 1,
+            name: 1,
           },
+          tags: 1,
+          status: 1,
+          stats: 1,
+          likeCount: 1,
+          commentCount: 1,
+          bookmarkCount: 1,
+          createdAt: 1,
+          publishedAt: 1,
         },
-      ]);
+      },
+    ]);
 
-      // Get blogs and pagination with aggregate
-      const blogs = await blogModel.aggregatePaginate(aggregate, {
-        page,
-        limit,
-      });
+    // Get blogs and pagination with aggregate
+    const blogs = await blogModel.aggregatePaginate(aggregate, {
+      page,
+      limit,
+    });
 
-      // Get notifications, total notifications and total unread notifications
-      const [notifications, totalNotifications, totalUnreadNotifications] = await Promise.all([
-        notificationModel.find({ recipientId: authorId }).sort({ createdAt: -1 }),
-        notificationModel.countDocuments({ recipientId: authorId }),
-        notificationModel.countDocuments({ recipientId: authorId, isRead: false }),
-      ]);
+    // Get notifications, total notifications and total unread notifications
+    const [notifications, totalNotifications, totalUnreadNotifications] = await Promise.all([
+      notificationModel.find({ recipientId: authorId }).sort({ createdAt: -1 }),
+      notificationModel.countDocuments({ recipientId: authorId }),
+      notificationModel.countDocuments({ recipientId: authorId, isRead: false }),
+    ]);
 
-      return res.render('authors/blogs', {
+    await redisSet(
+      cacheKey,
+      {
         title: 'Author | Blogs',
         pageTitle: 'Author Blogs',
         currentPath: '/authors/blogs',
@@ -124,72 +130,71 @@ class AuthorBlogController {
         notifications,
         totalUnreadNotifications,
         totalNotifications,
-      });
-    } catch (error) {
-      Logger.error(`${(error as Error).message}`);
+      },
+      300,
+    );
 
-      req.flash('error', (error as Error).message);
-      return res.redirect('/authors/auth/login');
-    }
+    return res.render('authors/blogs', {
+      title: 'Author | Blogs',
+      pageTitle: 'Author Blogs',
+      currentPath: '/authors/blogs',
+      blogs,
+      author: req.user,
+      notifications,
+      totalUnreadNotifications,
+      totalNotifications,
+    });
   }
 
   async getAuthorCreateBlogPage(req: Request, res: Response) {
-    try {
-      Logger.info('Creating blog...');
+    Logger.info('Creating blog...');
 
-      if (!req.user) {
-        throw new Error('Access denied');
-      }
+    const authorId = req?.user?._id;
 
-      const authorId = req.user._id;
+    const [categories, notifications, totalNotifications, totalUnreadNotifications] =
+      await Promise.all([
+        categoryModel.find({ isDeleted: false }),
+        notificationModel.find({ recipientId: authorId }).sort({ createdAt: -1 }).limit(8).lean(),
+        notificationModel.countDocuments({ recipientId: authorId }),
+        notificationModel.countDocuments({ recipientId: authorId, isRead: false }),
+      ]);
 
-      // Get notifications, total notifications and total unread notifications
-      // Get categories
-      const [categories, notifications, totalNotifications, totalUnreadNotifications] =
-        await Promise.all([
-          categoryModel.find({ isDeleted: false }),
-          notificationModel.find({ recipientId: authorId }).sort({ createdAt: -1 }),
-          notificationModel.countDocuments({ recipientId: authorId }),
-          notificationModel.countDocuments({ recipientId: authorId, isRead: false }),
-        ]);
-
-      return res.render('authors/create-blog', {
-        title: 'Author | Create Blog',
-        pageTitle: 'Create Blog',
-        currentPath: '/authors/blogs',
-        author: req.user,
-        categories,
-        notifications,
-        totalUnreadNotifications,
-        totalNotifications,
-      });
-    } catch (error) {
-      Logger.error(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
-      return res.redirect('/authors/auth/login');
-    }
+    return res.render('authors/create-blog', {
+      title: 'Author | Create Blog',
+      pageTitle: 'Create Blog',
+      currentPath: '/authors/blogs',
+      author: req.user,
+      categories,
+      notifications,
+      totalUnreadNotifications,
+      totalNotifications,
+    });
   }
 
   async createBlogHandler(req: Request, res: Response) {
     try {
       Logger.info('Author creating blog...');
 
-      if (!req.user) {
-        throw new Error('Access denied');
-      }
-
-      const authorId = req.user?._id;
+      const authorId = req?.user?._id;
 
       // Get form data from the client side
       const { title, excerpt, content, categories, tags } = req.body;
-      const coverImageLocalFilePath = req.file?.path;
+      const coverImageLocalFilePath = req?.file?.path;
 
       // Check if local file path is not found
       if (!coverImageLocalFilePath) {
         throw new Error('Please change your cover image and try again');
       }
 
+      // Convert content to text only
+      const textOnlyContent = (content || '').replace(/<[^>]*>/g, '').trim();
+      if (!textOnlyContent) {
+        throw new Error('Blog content cannot be empty');
+      }
+
+      // console.log(`Text only content`, textOnlyContent);
+
+      // get admin and publisher
       const [admin, publisher] = await Promise.all([
         userModel.findOne({ role: UserRole.ADMIN, isDeleted: false }),
         userModel.findOne({ role: UserRole.PUBLISHER, isDeleted: false }),
@@ -204,17 +209,18 @@ class AuthorBlogController {
       const isTechBlog = await analyzeBlog({
         title,
         excerpt,
-        content,
+        content: textOnlyContent,
       });
       // If blog is not tech related then send mail and notification to author
       if (!isTechBlog || !isTechBlog?.isTechRelated) {
         // TODO : Add notification to author and also send mail
         const mailRecord = await emailModel.create({
           recipient: authorId,
-          recipientEmail: req.user.email,
+          recipientEmail: req?.user?.email,
           subject: 'Blog is not tech related',
+          type: EmailType.BLOG_UNWANTED_CONTENT,
           body: isTechBlog?.reason || 'Blog is not tech related',
-          source: UserRole.AUTHOR,
+          source: EmailSource.SYSTEM,
           status: EmailStatus.PENDING,
         });
 
@@ -227,7 +233,7 @@ class AuthorBlogController {
           recipient: mailRecord.recipientEmail,
           subject: mailRecord.subject,
           htmlTemplate: blogUnwantedContentTemplate({
-            AUTHOR_NAME: req.user.username,
+            AUTHOR_NAME: req?.user!.username as string,
             reason: mailRecord.body,
             redirectLink: `${env.CLIENT_URL}/authors/blogs`,
           }),
@@ -267,6 +273,13 @@ class AuthorBlogController {
         throw new Error('Something went wrong please try again');
       }
 
+      const normalizedCategories = Array.isArray(categories)
+        ? categories
+        : categories
+          ? [categories]
+          : [];
+      const normalizedTags = typeof tags === 'string' ? tags.split(',').map((t) => t.trim()) : [];
+
       // Create blog
       const newBlog = await blogModel.create({
         title,
@@ -281,8 +294,8 @@ class AuthorBlogController {
           url: cloudinaryResponse.secure_url,
         },
         content,
-        categories,
-        tags: tags ? tags.split(',').map((t: string) => t.trim()) : [],
+        categories: normalizedCategories,
+        tags: normalizedTags,
         authorId: authorId,
         publisherId: publisher._id,
       });
@@ -321,6 +334,8 @@ class AuthorBlogController {
         );
         io.to(`admin:${adminNotification.recipientId}`).emit('notification:new', adminNotification);
       }
+
+      // DELETE CACHED DATA
 
       req.flash('success', 'Blog created successfully waiting for the published');
       return res.redirect('/authors/blogs');

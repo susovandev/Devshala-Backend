@@ -9,22 +9,19 @@ class PublisherCategoryController {
     try {
       Logger.info('Getting category page...');
 
+      // Setup Pagination
       const page = Number(req.query.page) || 1;
       const limit = 8;
 
-      if (!req.user) {
-        Logger.warn('Request user not found');
-        req.flash('error', 'Request user not found please try again');
-        return res.redirect('/publishers/auth/login');
-      }
+      const publisherId = req?.user?._id;
 
       const aggregate = categoryModel.aggregate([
-        { $match: { createdBy: new mongoose.Types.ObjectId(req.user._id), isDeleted: false } },
+        { $match: { createdBy: new mongoose.Types.ObjectId(publisherId), isDeleted: false } },
         {
           $lookup: {
             from: 'blogs',
             localField: '_id',
-            foreignField: 'categoryId',
+            foreignField: 'categories',
             as: 'blogs',
           },
         },
@@ -38,42 +35,53 @@ class PublisherCategoryController {
             createdAt: -1,
           },
         },
+        {
+          $project: {
+            blogs: 0,
+            createdBy: 0,
+            isDeleted: 0,
+            isActive: 0,
+            updatedAt: 0,
+          },
+        },
       ]);
 
-      const categories = await categoryModel.aggregatePaginate(aggregate, {
-        page,
-        limit,
-      });
+      /**
+       * Get notifications
+       * Count total notifications
+       * Count total unread notifications
+       */
+      const [categories, notifications, totalNotifications, totalUnreadNotifications] =
+        await Promise.all([
+          categoryModel.aggregatePaginate(aggregate, {
+            page,
+            limit,
+          }),
+          notificationModel
+            .find({ recipientId: publisherId })
+            .sort({ createdAt: -1 })
+            .limit(8)
+            .lean(),
+          notificationModel.countDocuments({ recipientId: publisherId }),
+          notificationModel.countDocuments({ recipientId: publisherId, isRead: false }),
+        ]);
 
-      const notifications = await notificationModel
-        .find({ recipientId: req.user._id })
-        .sort({ createdAt: -1 })
-        .limit(8)
-        .lean();
-
-      const totalNotifications = await notificationModel.countDocuments({
-        recipientId: req.user._id,
-      });
-
-      const totalUnreadNotifications = await notificationModel.countDocuments({
-        recipientId: req.user._id,
-        isRead: false,
-      });
+      // console.log(`Categories: ${JSON.stringify(categories, null, 2)}`);
 
       return res.render('publishers/categories', {
         title: 'Manage Categories',
         pageTitle: 'Manage Categories',
         currentPath: '/publishers/categories',
-        publisher: req.user,
+        publisher: req?.user,
         categories,
         notifications,
         totalUnreadNotifications,
         totalNotifications,
       });
     } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
+      Logger.error(`${(error as Error).message}`);
       req.flash('error', (error as Error).message);
-      return res.redirect('/admin/categories');
+      return res.redirect('/publishers/categories');
     }
   }
 

@@ -38,12 +38,12 @@
         <div class="flex flex-col items-center text-center">
 
           <img
-            src="<%= author.avatarUrl.url || 'https://ui-avatars.com/api/?name=' + author.username + '&background=0D8ABC&color=fff' %>"
+            src="<%= author?.avatarUrl?.url || 'https://ui-avatars.com/api/?name=' + author.username + '&background=0D8ABC&color=fff' %>"
             class="w-32 h-32 rounded-full object-cover border"
           />
 
-          <h3 class="mt-4 text-lg font-semibold"><%= author.username %></h3>
-          <p class="text-sm text-gray-500"><%= author.email %></p>
+          <h3 class="mt-4 text-lg font-semibold"><%= author?.username %></h3>
+          <p class="text-sm text-gray-500"><%= author?.email %></p>
 
           <span class="mt-2 px-3 py-1 text-xs rounded-full bg-indigo-100 text-indigo-600">
             <%= author.role %>
@@ -296,7 +296,7 @@
       <div>
         <p class="text-gray-500">Joined</p>
         <p class="font-medium text-gray-900">
-          <%= author.createdAt.toDateString() %>
+          <%= new Date(author.createdAt).toDateString() || author?.createdAt?.toDateString() || '' %>
         </p>
       </div>
     </div>
@@ -331,8 +331,8 @@
         </p>
         <p class="text-sm text-gray-500">
           Last updated: 
-          <%= author.passwordUpdatedAt 
-              ? author.passwordUpdatedAt.toDateString() 
+          <%= author?.passwordUpdatedAt 
+              ? author?.passwordUpdatedAt?.toDateString() 
               : 'Never' %>
         </p>
       </div>

@@ -74,7 +74,7 @@ class AdminProfileController {
       return res.render('admin/profile', {
         title: 'Admin | Profile',
         pageTitle: 'Manage Profile',
-        currentPath: '/admin/profile',
+        currentPath: '/admins/profile',
         admin: req.user,
         notifications,
         totalUnreadNotifications,

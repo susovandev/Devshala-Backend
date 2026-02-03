@@ -35,7 +35,7 @@ class AdminNotificationController {
       res.render('admin/notifications', {
         title: 'Admin | Notifications',
         pageTitle: 'Admin Notification',
-        currentPath: '/admin/notifications',
+        currentPath: '/admins/notifications',
         admin: req.user,
         notifications: result.docs,
         pagination: {

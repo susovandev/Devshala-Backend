@@ -2,21 +2,35 @@ import { Router } from 'express';
 import publisherAuthController from './publisher.auth.controller.js';
 import { validateRequest } from '@middlewares/validation.middleware.js';
 import { AuthGuardEJS } from '@middlewares/auth.middleware.js';
+import { RoleGuardEJS } from '@middlewares/roleGuard.middleware.js';
+import { UserRole } from 'models/user.model.js';
 import {
   forgotPasswordSchema,
   loginSchema,
+  resendOtpSchema,
   resetPasswordSchema,
+  resetPasswordTokenSchema,
 } from 'validations/auth.validations.js';
-import { RoleGuardEJS } from '@middlewares/roleGuard.middleware.js';
-import { UserRole } from 'models/user.model.js';
 
 const router: Router = Router();
 
 router.get('/login', publisherAuthController.getPublisherLoginPage);
 
-router.post('/login', validateRequest(loginSchema), publisherAuthController.publisherLoginHandler);
+router.get('/forgot-password', publisherAuthController.getPublisherForgetPasswordPage);
 
-router.get('/forgot-password', publisherAuthController.getUserForgetPasswordPage);
+router.get(
+  '/reset-password',
+  validateRequest(resetPasswordTokenSchema, 'query'),
+  publisherAuthController.getPublisherResetPasswordPage,
+);
+
+router.get(
+  '/resend-verification',
+  validateRequest(resendOtpSchema, 'query'),
+  publisherAuthController.getPublisherResendVerificationPage,
+);
+
+router.post('/login', validateRequest(loginSchema), publisherAuthController.publisherLoginHandler);
 
 router.post(
   '/forgot-password',
@@ -24,7 +38,11 @@ router.post(
   publisherAuthController.publisherForgotPasswordHandler,
 );
 
-router.get('/reset-password', publisherAuthController.getPublisherResetPasswordPage);
+router.post(
+  '/resend-verification',
+  validateRequest(resendOtpSchema),
+  publisherAuthController.publisherResendOtpHandler,
+);
 
 router.post(
   '/reset-password',
@@ -35,7 +53,7 @@ router.post(
 router.post(
   '/logout',
   AuthGuardEJS,
-  RoleGuardEJS(UserRole.PUBLISHER),
+  RoleGuardEJS(UserRole.AUTHOR),
   publisherAuthController.publisherLogoutHandler,
 );
 

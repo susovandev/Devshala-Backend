@@ -28,7 +28,6 @@ const refreshTokenSchema = new Schema<IRefreshTokenDocument>(
     expiresAt: {
       type: Date,
       required: true,
-      index: true,
     },
 
     isRevoked: {

@@ -2,28 +2,24 @@ import type { Request, Response } from 'express';
 import Logger from '@config/logger.js';
 import userModel, { UserRole, UserStatus } from 'models/user.model.js';
 import authHelper from '@modules/auth/auth.helper.js';
-import { sendEmailService } from 'mail/index.js';
-import emailModel, { EmailStatus } from 'models/email.model.js';
+import emailModel, { EmailSource, EmailType } from 'models/email.model.js';
 import { sendPublisherCredentialsMailTemplate } from 'mail/templates/admin/publisherCredentials.template.js';
 import { env } from '@config/env.js';
 import notificationModel from 'models/notification.model.js';
+import { sendEmailQueue } from 'queues/sendEmail.queue.js';
+import WelcomeAuthorTemplate from 'mail/templates/author/welcome.template.js';
+import BlockAuthorAccountTemplate from 'mail/templates/author/block-request.template.js';
+import accountActivateTemplate from 'mail/templates/author/activate-request.template.js';
+import accountDisableTemplate from 'mail/templates/author/disable-request.template.js';
 class PublisherAuthorController {
   async getAuthorsPage(req: Request, res: Response) {
     try {
       Logger.info('Getting authors page...');
 
-      if (!req.user) {
-        Logger.warn('Publisher not found');
-
-        req.flash('error', 'Publisher not found please try again');
-        return res.redirect('/publishers/auth/login');
-      }
-
-      const publisherId = req.user._id;
+      const publisherId = req?.user?._id;
 
       const page = Number(req.query.page) || 1;
       const limit = 8;
-
       const options = {
         page,
         limit,
@@ -33,42 +29,39 @@ class PublisherAuthorController {
         {
           role: UserRole.AUTHOR,
           isDeleted: false,
+          createdBy: publisherId,
         },
         options,
       );
 
-      // Get notifications
-      const notifications = await notificationModel
-        .find({
-          recipientId: publisherId,
-        })
-        .sort({ createdAt: -1 })
-        .limit(8)
-        .lean();
-
-      const totalNotifications = await notificationModel.find({
-        recipientId: publisherId,
-      });
-
-      const totalUnreadNotifications = await notificationModel.countDocuments({
-        recipientId: publisherId,
-        isRead: false,
-      });
+      /**
+       * Get notifications
+       * Count total notifications
+       * Count total unread notifications
+       */
+      const [notifications, totalNotifications, totalUnreadNotifications] = await Promise.all([
+        notificationModel
+          .find({ recipientId: publisherId })
+          .sort({ createdAt: -1 })
+          .limit(8)
+          .lean(),
+        notificationModel.countDocuments({ recipientId: publisherId }),
+        notificationModel.countDocuments({ recipientId: publisherId, isRead: false }),
+      ]);
 
       return res.render('publishers/authors', {
         title: 'Publisher | Authors',
         pageTitle: 'Publisher Authors',
         currentPath: '/publishers/author/manage',
-        publisher: req.user,
+        publisher: req?.user,
         authors,
         notifications,
         totalUnreadNotifications,
         totalNotifications,
       });
-    } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/publishers/author/manage');
     }
   }
@@ -83,28 +76,19 @@ class PublisherAuthorController {
       // Find user by username and email
       const user = await userModel.findOne({
         $or: [{ username }, { email: normalizedEmail }],
-        role: { $ne: UserRole.ADMIN },
+        role: {
+          $nin: [UserRole.PUBLISHER, UserRole.ADMIN],
+        },
+        isDeleted: false,
       });
 
       // Check if user already exists in
       if (user) {
         if (user.role === UserRole.AUTHOR) {
-          Logger.warn('Already have a author account');
-
-          req.flash('error', 'Already have a author account');
-          return res.redirect('/publishers/author/manage');
+          throw new Error('Already have a author account');
         }
         if (user.status !== UserStatus.ACTIVE) {
-          Logger.warn('Author account is not active');
-
-          req.flash('error', 'Author account is not active');
-          return res.redirect('/publishers/author/manage');
-        }
-        if (user.isDeleted) {
-          Logger.warn('Author account is already deleted');
-
-          req.flash('error', 'Author account is already deleted');
-          return res.redirect('/publishers/author/manage');
+          throw new Error('Author account is not active');
         }
 
         // Update role
@@ -112,6 +96,22 @@ class PublisherAuthorController {
         await user.save({ validateBeforeSave: true });
 
         // TODO: SEND EMAIL TO USER
+        const emailRecord = await emailModel.create({
+          recipient: user?._id,
+          recipientEmail: user?.email,
+          subject: 'You are added as author on Devshala',
+          type: EmailType.AUTHOR_ACCOUNT_CREATED,
+          source: EmailSource.PUBLISHER,
+          body: WelcomeAuthorTemplate({
+            dashboard_url: `${env.BASE_URL}/authors/auth/login`,
+          }),
+        });
+
+        // TODO: SEND EMAIL TO USER : BULL MQ
+        await sendEmailQueue.add('send-email', {
+          emailId: emailRecord._id.toString(),
+        });
+
         req.flash('success', 'Author role updated successfully');
         return res.redirect('/publishers/author/manage');
       }
@@ -120,18 +120,14 @@ class PublisherAuthorController {
       const randomStrongPassword = authHelper.generateStrongRandomPassword();
       if (!randomStrongPassword) {
         Logger.warn('Generating random strong password failed');
-
-        req.flash('error', 'Something went wrong please try again');
-        return res.redirect('/publishers/author/manage');
+        throw new Error('Something went wrong please try again');
       }
 
       // Hash password
       const hashPassword = await authHelper.hashPasswordHelper(randomStrongPassword);
       if (!hashPassword) {
         Logger.warn('Hashing password failed');
-
-        req.flash('error', 'Something went wrong please try again');
-        return res.redirect('/publishers/author/manage');
+        throw new Error('Something went wrong please try again');
       }
 
       // Create new author in DB
@@ -146,18 +142,13 @@ class PublisherAuthorController {
         status: UserStatus.ACTIVE,
       });
 
-      if (!author) {
-        Logger.warn('Creating Author failed');
-
-        req.flash('error', 'Something went wrong please try again');
-        return res.redirect('/publishers/author/manage');
-      }
-
       // store email record
       const emailRecord = await emailModel.create({
         recipient: author._id,
         recipientEmail: author.email,
-        subject: 'Your credentials',
+        subject: 'You are added as author on Devshala',
+        type: EmailType.AUTHOR_ACCOUNT_CREATED,
+        source: EmailSource.PUBLISHER,
         body: sendPublisherCredentialsMailTemplate({
           appName: 'Devshala',
           publisherName: author.username,
@@ -167,64 +158,41 @@ class PublisherAuthorController {
           year: new Date().getFullYear(),
           supportEmail: env.SUPPORT_EMAIL,
         }),
-        source: UserRole.PUBLISHER,
-        sendAt: new Date(Date.now()),
-        status: EmailStatus.PENDING,
       });
-      if (!emailRecord) {
-        Logger.warn('Creating Author failed');
 
-        req.flash('error', 'Something went wrong please try again');
-        return res.redirect('/publishers/author/manage');
-      }
-
-      // Send credentials to publisher email
-      await sendEmailService({
-        recipient: emailRecord.recipientEmail,
-        subject: emailRecord.subject,
-        htmlTemplate: emailRecord.body,
-        sender: req.user?.email,
+      // TODO: SEND EMAIL TO USER : BULL MQ
+      await sendEmailQueue.add('send-email', {
+        emailId: emailRecord._id.toString(),
       });
 
       req.flash('success', 'Author created successfully and credentials sent to author email');
       return res.redirect('/publishers/author/manage');
-    } catch (error) {
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/publishers/author/manage');
     }
   }
+
   async blockAuthorAccountHandler(req: Request, res: Response) {
     try {
       Logger.info('Blocking Author account...');
 
-      //1. Get authorId from the params
-      const authorId = req.params.id;
-      if (!authorId) {
-        Logger.warn('Author id not found');
+      const authorId = req.params?.id;
 
-        req.flash('error', 'Author id not found');
-        return res.redirect('/publishers/author/manage');
-      }
-
-      //2. Check if author exists in DB
       const author = await userModel.findOne({
         _id: authorId,
         isDeleted: false,
         role: UserRole.AUTHOR,
+        createdBy: req.user?._id,
       });
       if (!author) {
-        Logger.warn('Author not found');
-
-        req.flash('error', 'Author not found please try again');
-        return res.redirect('/publishers/author/manage');
+        throw new Error('Author not found please try again');
       }
 
       //3. check if user is already blocked or disabled
       if (author.status !== UserStatus.ACTIVE) {
-        Logger.warn('User is already blocked or disabled');
-
-        req.flash('error', 'Author is already blocked or disabled');
-        return res.redirect('/publishers/author/manage');
+        throw new Error('Author is already blocked or disabled');
       }
 
       const blockedAuthor = await userModel.findOneAndUpdate(
@@ -236,36 +204,43 @@ class PublisherAuthorController {
           blockedReason: req.body.reason,
         },
       );
-
       if (!blockedAuthor) {
-        Logger.warn('Blocking Author failed');
-
-        req.flash('error', 'Something went wrong please try again');
-        return res.redirect('/publishers/author/manage');
+        throw new Error('Blocking Author failed, Please try again');
       }
-      // TODO: SEND EMAIL TO USER
+
+      // TODO: SEND EMAIL TO USER: BULL MQ
+      const emailRecord = await emailModel.create({
+        recipient: author._id,
+        recipientEmail: author.email,
+        subject: 'Account blocked',
+        type: EmailType.ACCOUNT_BLOCKED,
+        source: EmailSource.PUBLISHER,
+        body: BlockAuthorAccountTemplate({
+          author_name: author?.username,
+          block_reason: req?.body?.reason,
+        }),
+      });
+
+      // TODO: SEND EMAIL TO USER : BULL MQ
+      await sendEmailQueue.add('send-email', {
+        emailId: emailRecord._id.toString(),
+      });
 
       req.flash('success', 'Author blocked successfully');
       return res.redirect('/publishers/author/manage');
-    } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/publishers/author/manage');
     }
   }
+
   async activeAuthorAccountHandler(req: Request, res: Response) {
     try {
       Logger.info('Activating Author account...');
 
       //1. Get authorId from the params
       const authorId = req.params.id;
-      if (!authorId) {
-        Logger.warn('Author id not found');
-
-        req.flash('error', 'Author id not found');
-        return res.redirect('/publishers/author/manage');
-      }
 
       //2. Check already exists in DB
       const author = await userModel.findOne({
@@ -274,18 +249,12 @@ class PublisherAuthorController {
         role: UserRole.AUTHOR,
       });
       if (!author) {
-        Logger.warn('Author not found');
-
-        req.flash('error', 'Author not found please try again');
-        return res.redirect('/publishers/author/manage');
+        throw new Error('Author not found please try again');
       }
 
       // check if user is already active
       if (author.status === UserStatus.ACTIVE) {
-        Logger.warn('Author is already ACTIVE');
-
-        req.flash('error', 'Author is already ACTIVE');
-        return res.redirect('/publishers/author/manage');
+        throw new Error('Author is already ACTIVE');
       }
 
       const activatedAuthor = await userModel.findOneAndUpdate(
@@ -298,18 +267,32 @@ class PublisherAuthorController {
       );
 
       if (!activatedAuthor) {
-        Logger.warn('Activating Author failed');
-
-        req.flash('error', 'Something went wrong please try again');
-        return res.redirect('/publishers/author/manage');
+        throw new Error('Activating Author failed');
       }
+
+      // TODO: SEND EMAIL TO USER: BULL MQ
+      const emailRecord = await emailModel.create({
+        recipient: author?._id,
+        recipientEmail: author?.email,
+        subject: 'Account Activated',
+        type: EmailType.ACCOUNT_ACTIVATED,
+        source: EmailSource.PUBLISHER,
+        body: accountActivateTemplate({
+          username: author?.username,
+          login_url: `${env.BASE_URL}/authors/auth/login`,
+        }),
+      });
+
+      // TODO: SEND EMAIL TO USER : BULL MQ
+      await sendEmailQueue.add('send-email', {
+        emailId: emailRecord._id.toString(),
+      });
 
       req.flash('success', 'Author activated successfully');
       return res.redirect('/publishers/author/manage');
-    } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/publishers/author/manage');
     }
   }
@@ -318,13 +301,7 @@ class PublisherAuthorController {
       Logger.info('Disabling author account...');
 
       // Get authorId from the params
-      const authorId = req.params.id;
-      if (!authorId) {
-        Logger.error('Author id not found');
-
-        req.flash('error', 'Author id not found');
-        return res.redirect('/publishers/author/manage');
-      }
+      const authorId = req.params?.id;
 
       // Check already exists in DB
       const author = await userModel.findOne({
@@ -333,18 +310,12 @@ class PublisherAuthorController {
         role: UserRole.AUTHOR,
       });
       if (!author) {
-        Logger.error('Author not found');
-
-        req.flash('error', 'Author not found please try again');
-        return res.redirect('/publishers/author/manage');
+        throw new Error('Author not found please try again');
       }
 
-      // check if user is already disabled or active
+      // check if user is already disabled or activ
       if (author.status !== UserStatus.ACTIVE) {
-        Logger.warn('Author is already ACTIVE');
-
-        req.flash('error', 'Author is already DISABLED or BLOCKED');
-        return res.redirect('/publishers/authors');
+        throw new Error('Author is already DISABLED or BLOCKED');
       }
 
       const disabledAuthor = await userModel.findOneAndUpdate(
@@ -357,19 +328,32 @@ class PublisherAuthorController {
         },
       );
       if (!disabledAuthor) {
-        Logger.warn('Disabling Author failed');
-
-        req.flash('error', 'Something went wrong please try again');
-        return res.redirect('/publishers/author/manage');
+        throw new Error('Disabling Author failed');
       }
 
-      // TODO: SEND EMAIL TO USER
+      // TODO: SEND EMAIL TO USER: BULL MQ
+      const emailRecord = await emailModel.create({
+        recipient: author._id,
+        recipientEmail: author.email,
+        subject: 'Account disabled',
+        type: EmailType.ACCOUNT_DISABLED,
+        source: EmailSource.PUBLISHER,
+        body: accountDisableTemplate({
+          reason: req?.body?.reason,
+          username: author?.username,
+        }),
+      });
+
+      // TODO: SEND EMAIL TO USER : BULL MQ
+      await sendEmailQueue.add('send-email', {
+        emailId: emailRecord._id.toString(),
+      });
+
       req.flash('success', 'Author disabled successfully');
       return res.redirect('/publishers/author/manage');
-    } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/publishers/author/manage');
     }
   }

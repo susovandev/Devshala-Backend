@@ -6,18 +6,14 @@ import mongoose from 'mongoose';
 class PublisherNotificationController {
   async getPublisherNotificationsPage(req: Request, res: Response) {
     try {
-      if (!req.user) {
-        req.flash('error', 'Please login again');
-        return res.redirect('/publishers/auth/login');
-      }
-
       const page = Number(req.query.page) || 1;
       const limit = 8;
+      const publisherId = req?.user?._id;
 
       const aggregate = notificationModel.aggregate([
         {
           $match: {
-            recipientId: new mongoose.Types.ObjectId(req.user._id),
+            recipientId: new mongoose.Types.ObjectId(publisherId),
           },
         },
         {
@@ -34,7 +30,7 @@ class PublisherNotificationController {
         title: 'Publisher | Notifications',
         pageTitle: 'Publisher Notification',
         currentPath: '/publishers/notifications',
-        publisher: req.user,
+        publisher: req?.user,
         notifications: result.docs,
         pagination: {
           page: result.page,
@@ -43,10 +39,9 @@ class PublisherNotificationController {
           hasPrev: result.hasPrevPage,
         },
       });
-    } catch (error) {
-      Logger.warn((error as Error).message);
-
-      req.flash('error', 'Something went wrong');
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/publishers/dashboard');
     }
   }

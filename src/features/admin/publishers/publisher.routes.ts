@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import adminPublisherController from './publisher.controller.js';
 import { validateRequest } from '@middlewares/validation.middleware.js';
-import { createUserSchema, reasonSchema, userIdParam } from 'validations/user.validations.js';
+import { createUserSchema, IdSchema, reasonSchema } from 'validations/user.validations.js';
 
 const router: Router = Router();
 
@@ -14,18 +14,18 @@ router.post(
 
 router.post(
   '/:id/block',
-  validateRequest(userIdParam, 'params'),
+  validateRequest(IdSchema, 'params'),
   validateRequest(reasonSchema),
   adminPublisherController.blockPublisherAccountHandler,
 );
 router.post(
   '/:id/activate',
-  validateRequest(userIdParam, 'params'),
+  validateRequest(IdSchema, 'params'),
   adminPublisherController.activePublisherAccountHandler,
 );
 router.post(
   '/:id/disable',
-  validateRequest(userIdParam, 'params'),
+  validateRequest(IdSchema, 'params'),
   validateRequest(reasonSchema),
   adminPublisherController.disablePublisherAccountHandler,
 );

@@ -24,6 +24,12 @@ class PublisherAuthController {
   async getPublisherLoginPage(req: Request, res: Response) {
     Logger.info('Getting Publisher login page...');
 
+    if (req.session?.user) {
+      Logger.info('User is already logged in');
+      req.flash('info', 'You are already logged in');
+      return res.redirect('/publishers/dashboard');
+    }
+
     return res.render('publishers/auth/login', {
       title: 'Publisher | Login',
       pageTitle: 'Publisher Login',
@@ -32,6 +38,12 @@ class PublisherAuthController {
 
   async getPublisherForgetPasswordPage(req: Request, res: Response) {
     Logger.info('Getting Publisher forget password page...');
+
+    if (req.session?.user) {
+      Logger.info('User is already logged in');
+      req.flash('info', 'You are already logged in');
+      return res.redirect('/publishers/dashboard');
+    }
 
     return res.render('publishers/auth/forgot-password', {
       title: 'Publisher | Forgot Password',
@@ -42,6 +54,12 @@ class PublisherAuthController {
   async getPublisherResetPasswordPage(req: Request, res: Response) {
     Logger.info('Getting Publisher reset password page...');
 
+    if (req.session?.user) {
+      Logger.info('User is already logged in');
+      req.flash('info', 'You are already logged in');
+      return res.redirect('/publishers/dashboard');
+    }
+
     return res.render('publishers/auth/reset-password', {
       title: 'Publisher | Reset Password',
       pageTitle: 'Publisher Reset Password',
@@ -51,6 +69,12 @@ class PublisherAuthController {
 
   async getPublisherResendVerificationPage(req: Request, res: Response) {
     Logger.info('Getting Publisher resend verification page...');
+
+    if (req.session?.user) {
+      Logger.info('User is already logged in');
+      req.flash('info', 'You are already logged in');
+      return res.redirect('/publishers/dashboard');
+    }
 
     return res.render('publishers/auth/resend-verification', {
       title: 'Publisher | Resend Verification',
@@ -144,6 +168,18 @@ class PublisherAuthController {
         lastLoginStatus: LoginStatus.SUCCESS,
         lastLoginAt: new Date(),
       });
+
+      req.session.user = {
+        _id: publisher._id.toString(),
+        role: publisher.role,
+        username: publisher.username,
+        email: publisher.email,
+        isEmailVerified: publisher.isEmailVerified,
+        status: publisher.status,
+        avatarUrl: publisher.avatarUrl || null,
+        createdAt: publisher.createdAt,
+        updatedAt: publisher.updatedAt,
+      };
 
       //Send accessToken and refreshToken to client cookies
       req.flash('success', 'Logged in successfully');
@@ -368,10 +404,9 @@ class PublisherAuthController {
 
       req.flash('success', 'A new OTP has been sent to your email');
       return res.redirect(`/publishers/auth/resend-verification?userId=${user._id.toString()}`);
-    } catch (error) {
-      Logger.warn((error as Error).message);
-
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect(`/publishers/auth/resend-verification?userId=${userId}`);
     }
   }
@@ -435,8 +470,14 @@ class PublisherAuthController {
         ),
       ]);
 
-      res.clearCookie('refreshToken');
-      res.clearCookie('accessToken');
+      req.session.user = null as any;
+      req.session.destroy(() => {
+        res
+          .clearCookie('app_session')
+          .clearCookie('refreshToken')
+          .clearCookie('accessToken')
+          .redirect('/publishers/auth/login');
+      });
 
       req.flash('success', 'Password reset successfully');
       return res.redirect('/publishers/auth/login');
@@ -463,11 +504,14 @@ class PublisherAuthController {
 
       req.flash('success', 'Logged out successfully');
 
-      //Clear cookies
-      return res
-        .clearCookie('refreshToken')
-        .clearCookie('accessToken')
-        .redirect('/publishers/auth/login');
+      req.session.user = null as any;
+      req.session.destroy(() => {
+        res
+          .clearCookie('app_session')
+          .clearCookie('refreshToken')
+          .clearCookie('accessToken')
+          .redirect('/publishers/auth/login');
+      });
     } catch (error) {
       Logger.error(`${(error as Error).message}`);
 

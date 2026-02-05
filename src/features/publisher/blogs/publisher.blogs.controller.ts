@@ -16,16 +16,10 @@ class PublisherBlogController {
     try {
       Logger.info('Getting publisher blog page...');
 
-      if (!req.user) {
-        Logger.warn('User not found');
-
-        req.flash('error', 'Unauthorized access please login');
-        return res.redirect('/publishers/auth/login');
-      }
+      const publisherId = req?.user?._id;
 
       const page = Number(req.query.page) || 1;
       const limit = 8;
-
       const options = {
         page,
         limit,
@@ -86,36 +80,34 @@ class PublisherBlogController {
         options,
       );
 
-      const notifications = await notificationModel
-        .find({ recipientId: req.user._id })
-        .sort({ createdAt: -1 })
-        .limit(8)
-        .lean();
-
-      // Get total notifications
-      const totalNotifications = await notificationModel.countDocuments({
-        recipientId: req.user._id,
-      });
-
-      const totalUnreadNotifications = await notificationModel.countDocuments({
-        recipientId: req.user._id,
-        isRead: false,
-      });
+      /**
+       * Get notifications
+       * Count total notifications
+       * Count total unread notifications
+       */
+      const [notifications, totalNotifications, totalUnreadNotifications] = await Promise.all([
+        notificationModel
+          .find({ recipientId: publisherId })
+          .sort({ createdAt: -1 })
+          .limit(8)
+          .lean(),
+        notificationModel.countDocuments({ recipientId: publisherId }),
+        notificationModel.countDocuments({ recipientId: publisherId, isRead: false }),
+      ]);
 
       return res.render('publishers/blogs', {
         title: 'Publisher | Blogs',
         pageTitle: 'Publisher Blogs',
         currentPath: '/publishers/blogs',
-        publisher: req.user,
+        publisher: req?.user,
         blogs,
         notifications,
         totalNotifications,
         totalUnreadNotifications,
       });
-    } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/publishers/blogs');
     }
   }
@@ -123,13 +115,6 @@ class PublisherBlogController {
   async getPublisherBlogUpdatePage(req: Request, res: Response) {
     try {
       Logger.info(`Updating blog with id: ${req.params.id}`);
-
-      if (!req.user) {
-        Logger.warn('Publisher not found');
-
-        req.flash('error', 'Unauthorized access please try again');
-        return res.redirect('/publishers/auth/login');
-      }
 
       const publisherId = req.user?._id;
       const blogId = req.params.id;
@@ -140,51 +125,45 @@ class PublisherBlogController {
         select: 'username',
       });
       if (!blog) {
-        Logger.warn('Blog not found');
-
-        req.flash('error', 'Blog not found');
-        return res.redirect('/publisherId/blogs');
+        throw new Error('Blog not found');
       }
 
       // Get all categories
       const categories = await categoryModel.find({ isDeleted: false });
 
-      const notifications = await notificationModel
-        .find({
-          recipientId: publisherId,
-        })
-        .sort({ createdAt: -1 })
-        .limit(8)
-        .lean();
-
-      // Get total notifications
-      const totalNotifications = await notificationModel.countDocuments({
-        recipientId: publisherId,
-      });
-
-      const totalUnreadNotifications = await notificationModel.countDocuments({
-        recipientId: publisherId,
-        isRead: false,
-      });
+      /**
+       * Get notifications
+       * Count total notifications
+       * Count total unread notifications
+       */
+      const [notifications, totalNotifications, totalUnreadNotifications] = await Promise.all([
+        notificationModel
+          .find({ recipientId: publisherId })
+          .sort({ createdAt: -1 })
+          .limit(8)
+          .lean(),
+        notificationModel.countDocuments({ recipientId: publisherId }),
+        notificationModel.countDocuments({ recipientId: publisherId, isRead: false }),
+      ]);
 
       return res.render('publishers/update-blog', {
         title: 'Publisher | Update Blog',
         pageTitle: 'Update Blog',
         currentPath: '/publisher/blogs',
-        publisher: req.user,
+        publisher: req?.user,
         blog,
         categories,
         notifications,
         totalUnreadNotifications,
         totalNotifications,
       });
-    } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/publishers/blogs');
     }
   }
+
   async approveBlogHandlerByPublisher(req: Request, res: Response) {
     try {
       const blogId = req.params.id;
@@ -192,11 +171,7 @@ class PublisherBlogController {
 
       Logger.info(`Approving blog: ${blogId} with status: ${approval}`);
 
-      if (!req.user) {
-        throw new Error('Unauthorized access');
-      }
-
-      const publisherId = req.user._id;
+      const publisherId = req?.user?._id;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updateData: any = {
@@ -231,6 +206,10 @@ class PublisherBlogController {
 
       Logger.info(`Blog status updated successfully: ${blog.status.publisherApprovalStatus}`);
 
+      req.flash(
+        'success',
+        `Blog status updated successfully: ${blog.status.publisherApprovalStatus}`,
+      );
       return res.status(200).json({
         success: true,
         message: 'Blog status updated successfully',
@@ -241,13 +220,13 @@ class PublisherBlogController {
       });
     } catch (error) {
       Logger.error((error as Error).message);
-
       return res.status(500).json({
         success: false,
         message: 'Internal server error',
       });
     }
   }
+
   async updateBlogHandler(req: Request, res: Response) {
     try {
       Logger.info('Update blog handler calling...');

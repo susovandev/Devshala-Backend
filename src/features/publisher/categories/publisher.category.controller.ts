@@ -78,9 +78,9 @@ class PublisherCategoryController {
         totalUnreadNotifications,
         totalNotifications,
       });
-    } catch (error) {
-      Logger.error(`${(error as Error).message}`);
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/publishers/categories');
     }
   }
@@ -89,33 +89,24 @@ class PublisherCategoryController {
     try {
       Logger.info('Creating category...');
 
-      if (!req.user) {
-        Logger.warn('Request user not found');
-
-        req.flash('error', 'Request user not found please try again');
-        return res.redirect('/publishers/auth/login');
-      }
-
+      const publisherId = req?.user?._id;
       const { name } = req.body;
 
       const newCategory = await categoryModel.create({
         name,
         slug: name.toLowerCase().trim().replace(/\s+/g, '-'),
-        createdBy: req.user._id,
+        createdBy: publisherId,
       });
-      if (!newCategory) {
-        Logger.warn('Failed to create a new category');
-
-        req.flash('error', 'Failed to create a new category');
-        return res.redirect('/publishers/categories');
-      }
 
       req.flash('success', 'Category created successfully');
       return res.redirect('/publishers/categories');
-    } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      if (error.code === 11000) {
+        req.flash('error', 'Category already exists');
+        return res.redirect('/publishers/categories');
+      }
+      req.flash('error', error.message);
       return res.redirect('/publishers/categories');
     }
   }
@@ -124,27 +115,15 @@ class PublisherCategoryController {
     try {
       Logger.info('Updating category...');
 
-      if (!req.user) {
-        Logger.warn('Request user not found');
-
-        req.flash('error', 'Request user not found please try again');
-        return res.redirect('/publishers/auth/login');
-      }
-
       const { id } = req.params;
-      if (!id) {
-        Logger.warn('Category id not found');
-
-        req.flash('error', 'Category id not found');
-        return res.redirect('/publishers/categories');
-      }
+      const publisherId = req?.user?._id;
 
       const { name } = req.body;
 
       const updatedCategory = await categoryModel.findOneAndUpdate(
         {
           _id: id,
-          createdBy: req.user._id,
+          createdBy: publisherId,
           isDeleted: false,
         },
         {
@@ -156,58 +135,39 @@ class PublisherCategoryController {
         },
       );
       if (!updatedCategory) {
-        Logger.warn('Failed to update a category');
-
-        req.flash('error', 'Failed to update a category');
-        return res.redirect('/publishers/categories');
+        throw new Error('Failed to update a category');
       }
 
       req.flash('success', 'Category updated successfully');
       return res.redirect('/publishers/categories');
-    } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/publishers/categories');
     }
   }
+
   async deleteCategoryHandler(req: Request, res: Response) {
     try {
       Logger.info('Deleting category...');
 
-      if (!req.user) {
-        Logger.warn('Request user not found');
-
-        req.flash('error', 'Request user not found please try again');
-        return res.redirect('/publishers/auth/login');
-      }
-
       const { id } = req.params;
-      if (!id) {
-        Logger.warn('Category id not found');
-
-        req.flash('error', 'Category id not found');
-        return res.redirect('/publishers/categories');
-      }
+      const publisherId = req?.user?._id;
 
       const deletedCategory = await categoryModel.findOneAndDelete({
         _id: id,
-        createdBy: req.user._id,
+        createdBy: publisherId,
         isDeleted: false,
       });
       if (!deletedCategory) {
-        Logger.warn('Failed to delete a category');
-
-        req.flash('error', 'Failed to delete a category');
-        return res.redirect('/publishers/categories');
+        throw new Error('Failed to delete a category');
       }
 
       req.flash('success', 'Category deleted successfully');
       return res.redirect('/publishers/categories');
-    } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/publishers/categories');
     }
   }

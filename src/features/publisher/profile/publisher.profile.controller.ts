@@ -42,42 +42,34 @@ class PublisherProfileController {
     try {
       Logger.info('Getting publisher profile page...');
 
-      if (!req.user) {
-        Logger.error('Publisher not found');
-        req.flash('error', 'Publisher not found please try again');
-        return res.redirect('/publishers/auth/login');
-      }
-
-      // Get notifications
-      const notifications = await notificationModel
-        .find({
-          recipientId: req.user._id,
-        })
-        .sort({ createdAt: -1 })
-        .limit(8)
-        .lean();
-
-      const totalNotifications = await notificationModel.find({
-        recipientId: req.user._id,
-      });
-
-      const totalUnreadNotifications = await notificationModel.countDocuments({
-        recipientId: req.user._id,
-        isRead: false,
-      });
+      const publisherId = req?.user?._id;
+      /**
+       * Get notifications
+       * Count total notifications
+       * Count total unread notifications
+       */
+      const [notifications, totalNotifications, totalUnreadNotifications] = await Promise.all([
+        notificationModel
+          .find({ recipientId: publisherId })
+          .sort({ createdAt: -1 })
+          .limit(8)
+          .lean(),
+        notificationModel.countDocuments({ recipientId: publisherId }),
+        notificationModel.countDocuments({ recipientId: publisherId, isRead: false }),
+      ]);
 
       return res.render('publishers/profile', {
         title: 'Publisher | Profile',
         pageTitle: 'Manage Profile',
         currentPath: '/publishers/profile',
-        publisher: req.user,
+        publisher: req?.user,
         notifications,
         totalUnreadNotifications,
         totalNotifications,
       });
-    } catch (error) {
-      Logger.error(`${(error as Error).message}`);
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/publishers/auth/login');
     }
   }
@@ -85,22 +77,12 @@ class PublisherProfileController {
   async updatePublisherAvatarHandler(req: Request, res: Response) {
     try {
       Logger.info('Updating publisher avatar...');
+
       const user = req.user;
       const avatarLocalFilePath = req.file?.path;
 
-      if (!user) {
-        Logger.warn('Publisher not found');
-
-        req.flash('error', 'User not found please try again');
-        return res.redirect('/publishers/profile');
-      }
-
-      // 1.Check if local file path is not found
       if (!avatarLocalFilePath) {
-        Logger.warn('User id or avatar local file path not found');
-
-        req.flash('error', 'Please change your avatar and try again');
-        return res.redirect('/publishers/profile');
+        throw new Error('Please change your avatar and try again');
       }
 
       // 2. upload avatar to cloudinary
@@ -110,10 +92,8 @@ class PublisherProfileController {
         uploadFolder: `${CLOUDINARY_FOLDER_NAME}/publisher/avatar`,
       });
       if (!cloudinaryResponse) {
-        Logger.warn('Uploading avatar to cloudinary failed');
-
-        req.flash('error', 'Something went wrong please try again');
-        return res.redirect('/publishers/profile');
+        Logger.warn('Avatar upload to cloudinary failed');
+        throw new Error('Something went wrong please try again');
       }
 
       // 3. if avatar is uploaded successfully, update user avatar in db delete from cloudinary
@@ -123,7 +103,7 @@ class PublisherProfileController {
 
       // 4. update user avatar in db
       const updatedResult = await userModel.findByIdAndUpdate(
-        user._id,
+        user?._id,
         {
           avatarUrl: {
             url: cloudinaryResponse.secure_url,
@@ -133,20 +113,17 @@ class PublisherProfileController {
         { new: true },
       );
       if (!updatedResult) {
-        Logger.warn('Updating user avatar failed');
-
-        req.flash('error', 'Something went wrong please try again');
-        return res.redirect('/publishers/profile');
+        throw new Error('Updating user avatar failed');
       }
 
       req.flash('success', 'Avatar updated successfully');
       return res.redirect('/publishers/profile');
-    } catch (error) {
-      Logger.error(`${(error as Error).message}`);
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/publishers/profile');
     } finally {
-      // 5. delete avatar local file
+      //delete avatar local file
       if (req.file?.path) {
         try {
           await fs.unlink(req.file.path);
@@ -217,9 +194,9 @@ class PublisherProfileController {
 
       req.flash('success', 'Profile updated successfully');
       return res.redirect('/publishers/profile');
-    } catch (error) {
-      Logger.error((error as Error).message);
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/publishers/profile');
     }
   }

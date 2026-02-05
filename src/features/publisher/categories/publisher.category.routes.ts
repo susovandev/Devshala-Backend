@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import publisherCategoryController from './publisher.category.controller.js';
-import { categoryIdParam } from 'validations/category.validations.js';
 import { validateRequest } from '@middlewares/validation.middleware.js';
+import { IdSchema } from 'validations/user.validations.js';
 
 const router: Router = Router();
 
@@ -10,13 +10,13 @@ router.post('/', publisherCategoryController.createCategoryHandler);
 
 router.put(
   '/:id',
-  validateRequest(categoryIdParam, 'params'),
+  validateRequest(IdSchema, 'params'),
   publisherCategoryController.updateCategoryController,
 );
 
 router.delete(
   '/:id',
-  validateRequest(categoryIdParam, 'params'),
+  validateRequest(IdSchema, 'params'),
   publisherCategoryController.deleteCategoryHandler,
 );
 

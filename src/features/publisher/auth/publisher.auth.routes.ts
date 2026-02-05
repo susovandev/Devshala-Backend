@@ -11,6 +11,10 @@ import {
   resetPasswordSchema,
   resetPasswordTokenSchema,
 } from 'validations/auth.validations.js';
+import { resetPasswordLimiter } from '@middlewares/rateLimit/resetPasswordLimiter.js';
+import { verifyLimiter } from '@middlewares/rateLimit/verifyLimiter.js';
+import { loginLimiter } from '@middlewares/rateLimit/loginLimiter.js';
+import { forgotPasswordLimiter } from '@middlewares/rateLimit/forgotPasswordLimiter.js';
 
 const router: Router = Router();
 
@@ -30,22 +34,30 @@ router.get(
   publisherAuthController.getPublisherResendVerificationPage,
 );
 
-router.post('/login', validateRequest(loginSchema), publisherAuthController.publisherLoginHandler);
+router.post(
+  '/login',
+  loginLimiter,
+  validateRequest(loginSchema),
+  publisherAuthController.publisherLoginHandler,
+);
 
 router.post(
   '/forgot-password',
+  forgotPasswordLimiter,
   validateRequest(forgotPasswordSchema),
   publisherAuthController.publisherForgotPasswordHandler,
 );
 
 router.post(
   '/resend-verification',
+  verifyLimiter,
   validateRequest(resendOtpSchema),
   publisherAuthController.publisherResendOtpHandler,
 );
 
 router.post(
   '/reset-password',
+  resetPasswordLimiter,
   validateRequest(resetPasswordSchema),
   publisherAuthController.publisherResetPasswordHandler,
 );

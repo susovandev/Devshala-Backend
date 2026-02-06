@@ -93,6 +93,7 @@ class PublisherAuthorController {
 
         // Update role
         user.role = UserRole.AUTHOR;
+        user.createdBy = req.user?._id;
         await user.save({ validateBeforeSave: true });
 
         // TODO: SEND EMAIL TO USER

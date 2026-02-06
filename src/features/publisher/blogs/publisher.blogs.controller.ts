@@ -1,15 +1,7 @@
 import { Request, Response } from 'express';
-import fs from 'node:fs/promises';
 import Logger from '@config/logger.js';
 import blogModel, { BlogApprovalStatus } from 'models/blog.model.js';
 import notificationModel from 'models/notification.model.js';
-import categoryModel from 'models/category.model.js';
-import {
-  CloudinaryResourceType,
-  deleteFromCloudinary,
-  uploadOnCloudinary,
-} from '@libs/cloudinary.js';
-import { CLOUDINARY_FOLDER_NAME } from 'constants/index.js';
 
 class PublisherBlogController {
   async getPublisherBlogsPage(req: Request, res: Response) {
@@ -112,58 +104,6 @@ class PublisherBlogController {
     }
   }
 
-  async getPublisherBlogUpdatePage(req: Request, res: Response) {
-    try {
-      Logger.info(`Updating blog with id: ${req.params.id}`);
-
-      const publisherId = req.user?._id;
-      const blogId = req.params.id;
-
-      // Get blog
-      const blog = await blogModel.findById(blogId).populate({
-        path: 'authorId',
-        select: 'username',
-      });
-      if (!blog) {
-        throw new Error('Blog not found');
-      }
-
-      // Get all categories
-      const categories = await categoryModel.find({ isDeleted: false });
-
-      /**
-       * Get notifications
-       * Count total notifications
-       * Count total unread notifications
-       */
-      const [notifications, totalNotifications, totalUnreadNotifications] = await Promise.all([
-        notificationModel
-          .find({ recipientId: publisherId })
-          .sort({ createdAt: -1 })
-          .limit(8)
-          .lean(),
-        notificationModel.countDocuments({ recipientId: publisherId }),
-        notificationModel.countDocuments({ recipientId: publisherId, isRead: false }),
-      ]);
-
-      return res.render('publishers/update-blog', {
-        title: 'Publisher | Update Blog',
-        pageTitle: 'Update Blog',
-        currentPath: '/publisher/blogs',
-        publisher: req?.user,
-        blog,
-        categories,
-        notifications,
-        totalUnreadNotifications,
-        totalNotifications,
-      });
-    } catch (error: any) {
-      Logger.error(error.message);
-      req.flash('error', error.message);
-      return res.redirect('/publishers/blogs');
-    }
-  }
-
   async approveBlogHandlerByPublisher(req: Request, res: Response) {
     try {
       const blogId = req.params.id;
@@ -224,107 +164,6 @@ class PublisherBlogController {
         success: false,
         message: 'Internal server error',
       });
-    }
-  }
-
-  async updateBlogHandler(req: Request, res: Response) {
-    try {
-      Logger.info('Update blog handler calling...');
-
-      if (!req.user) {
-        throw new Error('Unauthorized');
-      }
-
-      const publisherId = req.user._id;
-
-      // 1. Get blogId, coverImage, data from the frontend
-      const blogId = req.params.id;
-      const coverImageLocalFilePath = req.file?.path;
-      const data = req.body;
-
-      // 2. Check blog is already exits or not
-      const blog = await blogModel.findById(blogId);
-      if (!blog) {
-        throw new Error('Blog not found');
-      }
-
-      blog.title = data.title;
-      blog.excerpt = data.excerpt;
-      blog.content = data.content;
-      blog.tags = data.tags ? data.tags.split(',').map((t: string) => t.trim()) : [];
-
-      if (data.categories) {
-        blog.categories = Array.isArray(data.categories) ? data.categories : [data.categories];
-      }
-
-      // COVER IMAGE
-      if (coverImageLocalFilePath) {
-        const uploaded = await uploadOnCloudinary({
-          localFilePath: coverImageLocalFilePath,
-          resourceType: CloudinaryResourceType.IMAGE,
-          uploadFolder: `${CLOUDINARY_FOLDER_NAME}/blog/coverImage`,
-        });
-
-        // DELETE OLD IMAGE
-        if (blog.coverImage.publicId) {
-          await deleteFromCloudinary(blog.coverImage.publicId);
-          Logger.info('Previous cover image deleted from the cloudinary');
-        }
-
-        blog.coverImage = {
-          publicId: uploaded.public_id,
-          url: uploaded.secure_url,
-        };
-      }
-
-      // ADMIN APPROVAL
-      if (data.publisherApproved === 'on') {
-        blog.status.publisherApproved = true;
-        blog.status.publisherApprovedAt = new Date();
-        blog.status.publisherApprovalStatus = BlogApprovalStatus.APPROVED;
-        blog.status.rejectedBy.publisher = undefined;
-        blog.status.publisherRejectionReason = undefined;
-      } else {
-        blog.status.publisherApproved = false;
-      }
-
-      if (data.isPublished === 'on') {
-        blog.status.publisherIsPublished = true;
-
-        if (!blog.publishedAt) {
-          blog.publishedAt = new Date();
-        }
-      } else {
-        blog.status.publisherIsPublished = false;
-      }
-
-      if (data.rejectionReason) {
-        blog.status.publisherApprovalStatus = BlogApprovalStatus.REJECTED;
-        blog.status.rejectedBy.publisher = publisherId;
-        blog.status.publisherRejectionReason = data.rejectionReason;
-        blog.status.publisherIsPublished = false;
-      }
-
-      blog.updatedAt = new Date();
-
-      await blog.save();
-
-      req.flash('success', 'Blog updated successfully');
-      return res.redirect(`/publishers/blogs/${blogId}/edit`);
-    } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
-      return res.redirect(`/publishers/blogs/${req.params.id}/edit`);
-    } finally {
-      if (req.file) {
-        try {
-          fs.unlink(req.file.path);
-          Logger.info('Local file path deleted successfully');
-        } catch (error) {
-          Logger.error(`Local file path deleted failed: ${(error as Error).message}`);
-        }
-      }
     }
   }
 }

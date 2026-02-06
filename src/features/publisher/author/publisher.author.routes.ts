@@ -9,27 +9,27 @@ router.get('/', publisherAdminController.getAuthorsPage);
 
 router.post(
   '/create',
-  validateRequest(createUserSchema),
+  // validateRequest(createUserSchema),
   publisherAdminController.createAuthorHandler,
 );
 
 router.post(
   '/:id/block',
-  validateRequest(IdSchema, 'params'),
-  validateRequest(reasonSchema),
+  // validateRequest(IdSchema, 'params'),
+  // validateRequest(reasonSchema),
   publisherAdminController.blockAuthorAccountHandler,
 );
 
 router.post(
   '/:id/activate',
-  validateRequest(IdSchema, 'params'),
+  // validateRequest(IdSchema, 'params'),
   publisherAdminController.activeAuthorAccountHandler,
 );
 
 router.post(
   '/:id/disable',
-  validateRequest(IdSchema, 'params'),
-  validateRequest(reasonSchema),
+  // validateRequest(IdSchema, 'params'),
+  // validateRequest(reasonSchema),
   publisherAdminController.disableAuthorAccountHandler,
 );
 

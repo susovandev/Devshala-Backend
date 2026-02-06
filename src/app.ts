@@ -83,7 +83,7 @@ export default function initializeApp() {
       secret: env.SESSION_SECRET!,
       resave: false,
       saveUninitialized: false,
-      rolling: true,
+      rolling: false,
       cookie: {
         httpOnly: true,
         secure: false, // ONLY if HTTPS exists
@@ -92,8 +92,6 @@ export default function initializeApp() {
       },
     }),
   );
-
-  // app_session
 
   // Flash
   app.use(flash());

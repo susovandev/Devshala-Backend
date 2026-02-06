@@ -9,9 +9,11 @@ class BookmarksController {
   async getBookmarksPage(req: Request, res: Response) {
     try {
       const userId = new mongoose.Types.ObjectId(req?.user?._id);
+
       const page = Number(req.query.page) || 1;
       const limit = 6;
 
+      // TODO: Get bookmarks from cache
       const cacheKey = `user:bookmarks:page:${page}:limit:${limit}:userId:${userId}`;
       if (cacheKey) {
         Logger.info('Fetching bookmarks from cache...');
@@ -124,6 +126,7 @@ class BookmarksController {
           notificationModel.countDocuments({ recipientId: userId, isRead: false }),
         ]);
 
+      // TODO: Save bookmarks to cache
       if (cacheKey) {
         Logger.info('Saving bookmarks to cache...');
         await redisSet(cacheKey, {
@@ -148,9 +151,10 @@ class BookmarksController {
         totalNotifications,
         totalUnreadNotifications,
       });
-    } catch (error) {
-      Logger.error((error as Error).message);
-      return res.status(500).json({ message: 'Something went wrong' });
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash(error.message);
+      return res.redirect('/users/auth/login');
     }
   }
 
@@ -161,6 +165,7 @@ class BookmarksController {
       const userId = req?.user?._id;
       const { id } = req.params;
       if (!id) {
+        Logger.warn('Invalid blog id');
         return res.status(400).json({ message: 'Invalid blog id' });
       }
 
@@ -169,18 +174,21 @@ class BookmarksController {
         userId,
       });
       if (!bookmark) {
+        Logger.warn(`Bookmark with id ${id} not found`);
         return res.status(404).json({ message: 'Bookmark not found' });
       }
 
+      // TODO: Remove bookmark cached data
       const cacheKey = `user:bookmarks:*:userId:${userId}`;
       if (cacheKey) {
         await redisDelByPattern(cacheKey);
         Logger.info('Deleted bookmarks from cache...');
       }
 
+      req.flash('success', 'Bookmark removed');
       return res.status(200).json({ message: 'Bookmark removed' });
-    } catch (error) {
-      Logger.error((error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
       return res.status(500).json({ message: 'Something went wrong' });
     }
   }

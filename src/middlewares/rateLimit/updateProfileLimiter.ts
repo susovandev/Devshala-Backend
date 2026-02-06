@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { redis } from '@config/redis.js';
 
@@ -8,7 +8,11 @@ export const updateProfileLimiter = rateLimit({
   max: 10,
 
   keyGenerator: (req: Request) => {
-    return req.user?._id.toString() || req.ip || '';
+    if (req.user?._id) {
+      return req.user._id.toString();
+    }
+
+    return ipKeyGenerator(req?.ip || 'unknown');
   },
 
   standardHeaders: true,

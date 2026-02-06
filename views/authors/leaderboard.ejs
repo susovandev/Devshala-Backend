@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<%- include("../partials/head.ejs") %>
+<%- include("../partials/head.ejs", {title}) %>
 
   <body class="bg-gray-100 min-h-screen">
     <!-- TOAST START -->
@@ -12,9 +12,9 @@
 <%- include("./components/sidebar.ejs", {currentPath, author, pageTitle}) %>
 
 
-      <!-- MAIN AREA -->
+    <!-- MAIN AREA -->
 <div class="flex-1 flex flex-col">
-        <!-- TOP BAR -->
+    <!-- TOP BAR -->
 <%- include("./components/main-header.ejs", {author, totalUnreadNotifications, totalNotifications, notifications}) %>
 
 
@@ -194,24 +194,14 @@
       </a>
     <% } %>
   </div>
-
 </main>
-
-
-
-        <!-- FOOTER -->
+<!-- FOOTER -->
 <%- include("./components/footer.ejs",{author}) %>
 </div>
 </div>
-
-
-
-
     <%- include('../partials/toast-script.ejs') %>
     <%- include("./components/icon-hover.ejs") %>
     <%- include("./components/back-button.ejs") %>
     <%- include("./components/real-time.ejs") %>
-
-
   </body>
 </html>

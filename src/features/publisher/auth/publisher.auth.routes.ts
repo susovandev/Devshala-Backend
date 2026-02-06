@@ -36,7 +36,7 @@ router.get(
 
 router.post(
   '/login',
-  loginLimiter,
+  // loginLimiter,
   validateRequest(loginSchema),
   publisherAuthController.publisherLoginHandler,
 );
@@ -65,7 +65,7 @@ router.post(
 router.post(
   '/logout',
   AuthGuardEJS,
-  RoleGuardEJS(UserRole.AUTHOR),
+  RoleGuardEJS(UserRole.PUBLISHER),
   publisherAuthController.publisherLogoutHandler,
 );
 

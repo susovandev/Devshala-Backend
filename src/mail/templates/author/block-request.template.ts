@@ -188,7 +188,7 @@ export default function accountBlockTemplate({
           <!-- Footer -->
           <tr>
             <td class="footer">
-              © {{year}} Devshala. All rights reserved.
+              © ${year} Devshala. All rights reserved.
               <br />
               <a href="${website_url}">Website</a> ·
               <a href="${support_url}">Support</a> ·

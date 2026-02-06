@@ -1,11 +1,8 @@
 import { Router } from 'express';
 import adminCategoryController from './admin.category.controller.js';
 import { validateRequest } from '@middlewares/validation.middleware.js';
-import {
-  categoryIdParam,
-  createCategorySchema,
-  updateCategorySchema,
-} from 'validations/category.validations.js';
+import { createCategorySchema, updateCategorySchema } from 'validations/category.validations.js';
+import { IdSchema } from 'validations/user.validations.js';
 
 const router: Router = Router();
 
@@ -18,14 +15,14 @@ router.post(
 
 router.put(
   '/:id',
-  validateRequest(categoryIdParam, 'params'),
+  validateRequest(IdSchema, 'params'),
   validateRequest(updateCategorySchema),
   adminCategoryController.updateCategoryController,
 );
 
 router.delete(
   '/:id',
-  validateRequest(categoryIdParam, 'params'),
+  validateRequest(IdSchema, 'params'),
   adminCategoryController.deleteCategoryHandler,
 );
 

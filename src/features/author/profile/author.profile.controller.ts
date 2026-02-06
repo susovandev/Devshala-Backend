@@ -11,6 +11,8 @@ import type { Request, Response } from 'express';
 import userModel from 'models/user.model.js';
 import notificationModel from 'models/notification.model.js';
 import { redisDel, redisGet, redisSet } from '@libs/redis.js';
+import authHelper from '@modules/auth/auth.helper.js';
+import refreshTokenModel from 'models/refreshToken.model.js';
 
 export function expandDotNotation(input: Record<string, any>) {
   const output: Record<string, any> = {};
@@ -171,10 +173,7 @@ class AuthorProfileController {
     }
   }
 
-  async updateAuthorProfileHandler(
-    req: Request,
-    res: Response,
-  ) {
+  async updateAuthorProfileHandler(req: Request, res: Response) {
     try {
       Logger.info('Updating author profile...');
       const userId = req.user?._id;
@@ -253,6 +252,71 @@ class AuthorProfileController {
 
       req.flash('error', (error as Error).message);
       return res.redirect('/authors/auth/login');
+    }
+  }
+
+  async changePasswordHandler(req: Request, res: Response) {
+    try {
+      Logger.info(`Update author password route called`);
+
+      const authorId = req?.user?._id;
+
+      const { currentPassword, newPassword, confirmPassword } = req.body;
+
+      // 2.Compare newPassword and comparePassword
+      if (newPassword !== confirmPassword) {
+        throw new Error('Passwords do not match');
+      }
+
+      // 1.Find user with userId
+      const author = await userModel.findById(authorId).select('+passwordHash');
+      if (!author) {
+        throw new Error('Account not found');
+      }
+
+      // 3. Check password
+      const isPasswordMatch = await authHelper.comparePasswordHelper(
+        currentPassword,
+        author.passwordHash,
+      );
+      if (!isPasswordMatch) {
+        throw new Error('Current password is incorrect');
+      }
+
+      // 4. Hash password
+      const newPasswordHash = await authHelper.hashPasswordHelper(newPassword);
+      if (!newPasswordHash) {
+        throw new Error('Some error occurred please try again');
+      }
+
+      // 5. Update password
+      const updatedResult = await userModel.findByIdAndUpdate(
+        author?._id,
+        {
+          passwordHash: newPasswordHash,
+        },
+        { new: true },
+      );
+      if (!updatedResult) {
+        throw new Error('Some error occurred please try again');
+      }
+
+      // 6. Remove refresh token
+      const deletedRefreshTokenRecord = await refreshTokenModel.deleteMany({
+        userId: author?._id,
+      });
+      if (!deletedRefreshTokenRecord) {
+        throw new Error('Some error occurred please try again');
+      }
+
+      Logger.info('Password updated successfully');
+
+      req.flash('success', 'Password updated successfully');
+      return res.redirect('/authors/auth/login');
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
+      return res.redirect('/authors/profile/change-password');
     }
   }
 }

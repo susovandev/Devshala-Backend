@@ -8,7 +8,7 @@
 <div class="flex min-h-screen">
 
   <!-- SIDEBAR -->
-  <%- include("./components/sidebar.ejs", { currentPath, author, pageTitle }) %>
+  <%- include("./components/sidebar.ejs", { currentPath, admin, pageTitle }) %>
 
   <!-- MAIN -->
   <div class="flex-1 flex flex-col">
@@ -18,7 +18,7 @@
   <!-- LEFT -->
   <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-3">
     <span class="rounded-full bg-indigo-50 px-4 py-1 text-sm font-semibold text-indigo-700">
-      <%= author.username.toUpperCase() %>
+      <%= admin.username.toUpperCase() %>
     </span>
     Notifications
   </h2>
@@ -37,7 +37,7 @@
 </button>
 
     <!-- 🚪 Logout -->
-    <form action="/authors/auth/logout" method="POST">
+    <form action="/admins/auth/logout" method="POST">
       <button
         type="submit"
         class="flex items-center gap-2 text-sm font-medium text-red-600 bg-red-50 px-3 py-2 rounded-lg hover:bg-red-100 transition"
@@ -136,7 +136,7 @@
 
     </main>
 
-    <%- include("./components/footer.ejs", { author }) %>
+    <%- include("./components/footer.ejs", { admin }) %>
   </div>
 </div>
 
@@ -169,7 +169,7 @@
       }
 
       try {
-        await fetch(`/authors/notifications/${notificationId}/read`, {
+        await fetch(`/admins/notifications/${notificationId}/read`, {
           method: 'PATCH',
         });
       } catch (err) {

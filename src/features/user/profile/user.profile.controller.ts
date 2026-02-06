@@ -40,12 +40,14 @@ export function expandDotNotation(input: Record<string, any>) {
 
   return output;
 }
+
 class UserProfileController {
   async getUserProfilePage(req: Request, res: Response) {
     Logger.info('Getting user profile page...');
 
     const userId = req?.user?._id;
 
+    // TODO: Fetch profile from cache
     const cacheKey = `user:${userId}:profile`;
     if (cacheKey) {
       const cachedData = await redisGet(cacheKey);
@@ -54,6 +56,7 @@ class UserProfileController {
         return res.render('users/profile', cachedData);
       }
     }
+
     /**
      * Get notifications
      * Count total notifications
@@ -65,6 +68,7 @@ class UserProfileController {
       notificationModel.countDocuments({ recipientId: userId, isRead: false }),
     ]);
 
+    // TODO: Save profile to cache
     if (cacheKey) {
       await redisSet(
         cacheKey,
@@ -105,6 +109,7 @@ class UserProfileController {
   async updateUserAvatarHandler(req: Request, res: Response) {
     try {
       Logger.info('Updating user avatar...');
+
       const user = req?.user;
       const avatarLocalFilePath = req?.file?.path;
 
@@ -145,7 +150,7 @@ class UserProfileController {
         throw new Error('Something went wrong please try again');
       }
 
-      // Update existing cache
+      // TODO: Delete user profile from cache
       const cacheKey = `user:${user?._id}:profile`;
       if (cacheKey) {
         await redisDel(cacheKey);
@@ -154,10 +159,9 @@ class UserProfileController {
 
       req.flash('success', 'Avatar updated successfully');
       return res.redirect('/users/profile');
-    } catch (error) {
-      Logger.error(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/users/profile');
     } finally {
       // 5. delete avatar local file
@@ -237,9 +241,9 @@ class UserProfileController {
 
       req.flash('success', 'Profile updated successfully');
       return res.redirect('/users/profile');
-    } catch (error) {
-      Logger.error((error as Error).message);
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/users/profile');
     }
   }
@@ -302,10 +306,9 @@ class UserProfileController {
 
       req.flash('success', 'Password updated successfully');
       return res.redirect('/users/auth/login');
-    } catch (error) {
-      Logger.error(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/users/profile/change-password');
     }
   }

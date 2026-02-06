@@ -10,6 +10,8 @@ router.get('/', authorBlogsController.getAuthorBlogsPage);
 
 router.get('/create', authorBlogsController.getAuthorCreateBlogPage);
 
+router.get('/:id/edit', authorBlogsController.getAuthEditBlogPage);
+
 router.post(
   '/create',
   upload.single('coverImage'),
@@ -18,9 +20,9 @@ router.post(
 );
 
 router.put(
-  '/update',
+  '/:id/edit',
   upload.single('coverImage'),
-  validateRequest(updateBlogSchema),
+  // validateRequest(updateBlogSchema),
   authorBlogsController.updateBlogHandler,
 );
 

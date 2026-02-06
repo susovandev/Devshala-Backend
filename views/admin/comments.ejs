@@ -189,10 +189,8 @@
 
 
 
-        <!-- FOOTER -->
+  <!-- FOOTER -->
 <%- include("./components/footer.ejs",{admin}) %>
-
-
 <script>
 let selectedCommentId = null;
 let selectedStatus = null;
@@ -226,18 +224,11 @@ function closeModal() {
   document.getElementById('reasonModal').classList.add('hidden');
 }
 </script>
-
-
-
-      </div>
+</div>
     </div>
-      <!-- 🔔 REALTIME NOTIFICATION CONTAINER -->
     <%- include('../partials/toast-script.ejs') %>
     <%- include("./components/icon-hover.ejs") %>
     <%- include("./components/back-button.ejs") %>
     <%- include("./components/real-time.ejs") %>
-
-
-
   </body>
 </html>

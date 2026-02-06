@@ -23,6 +23,14 @@ import refreshTokenModel from 'models/refreshToken.model.js';
 import stripAnsi from 'strip-ansi';
 
 class UserAuthController {
+  /**
+   * Gets the user register page.
+   *
+   * @param {Request} req - HTTP request
+   * @param {Response} res - HTTP response
+   *
+   * @returns {Promise<void>} Promise resolved when the user register page is rendered
+   */
   async getUserRegisterPage(req: Request, res: Response) {
     Logger.info('Getting user register page...');
 
@@ -37,16 +45,25 @@ class UserAuthController {
     });
   }
 
+  /**
+ * Gets the user verify email page.
+ *
+ * @param {Request} req - HTTP request
+ * @param {Response} res - HTTP response
+ *
+ * @returns {Promise<void>} Promise resolved when the user verify email page is rendered
+ 
+ */
   async getUserVerifyOtpPage(req: Request, res: Response) {
     Logger.info('Getting user verify email page...');
-
-    const userId = req.query.userId as string;
 
     // 1. Get userId from session
     if (req?.session?.user) {
       req.flash('info', 'You are already logged in');
       return res.redirect('/');
     }
+
+    const userId = req.session.registeredUser?._id;
 
     return res.render('users/auth/verify-otp', {
       title: 'User | Verify Otp',
@@ -55,6 +72,16 @@ class UserAuthController {
     });
   }
 
+  /**
+   * Gets the user resend OTP page.
+   *
+   * @param {Request} req - HTTP request
+   * @param {Response} res - HTTP response
+   *
+   * @returns {Promise<void>} Promise resolved when the user resend OTP page is rendered
+   *
+   * @throws {Error} If userId is not found in the query string
+   */
   async getUserResendOtpPage(req: Request, res: Response) {
     Logger.info('Getting user resend otp page...');
 
@@ -63,13 +90,25 @@ class UserAuthController {
       return res.redirect('/');
     }
 
+    const userId = req.session.registeredUser?._id;
+
     return res.render('users/auth/resend-otp', {
       title: 'User | Resend OTP',
       pageTitle: 'User Resend OTP',
-      userId: req.query.userId,
+      userId: userId,
     });
   }
 
+  /**
+   * Gets the user resend verification page.
+   *
+   * @param {Request} req - HTTP request
+   * @param {Response} res - HTTP response
+   *
+   * @returns {Promise<void>} Promise resolved when the user resend verification page is rendered
+   *
+   * @throws {Error} If userId is not found in the query string
+   */
   async getUserResendVerificationPage(req: Request, res: Response) {
     Logger.info('Getting User resend verification page...');
 
@@ -78,19 +117,35 @@ class UserAuthController {
       return res.redirect('/');
     }
 
+    const userId = req.session.registeredUser?._id;
+
     return res.render('users/auth/resend-verification', {
       title: 'User | Resend Verification',
       pageTitle: 'User Resend Verification',
-      userId: req.query.userId,
+      userId: userId,
     });
   }
 
+  /**
+   * Gets the user reset password page.
+   *
+   * @param {Request} req - HTTP request
+   * @param {Response} res - HTTP response
+   *
+   * @returns {Promise<void>} Promise resolved when the user reset password page is rendered
+   */
   async getUserResetPasswordPage(req: Request, res: Response) {
     Logger.info('Getting user reset password page...');
 
     if (req?.session?.user) {
       req.flash('info', 'You are already logged in');
       return res.redirect('/');
+    }
+
+    if (!req.query.token) {
+      Logger.warn('Reset password token not found');
+      req.flash('error', 'Something went wrong please try again');
+      return res.redirect('/users/auth/login');
     }
 
     return res.render('users/auth/reset-password', {
@@ -100,6 +155,16 @@ class UserAuthController {
     });
   }
 
+  /**
+   * Gets the user login page.
+   *
+   * If the user is already logged in, flashes an info message and redirects to the root page.
+   *
+   * @param {Request} req - HTTP request
+   * @param {Response} res - HTTP response
+   *
+   * @returns {Promise<void>} Promise resolved when the user login page is rendered
+   */
   async getUserLoginPage(req: Request, res: Response) {
     Logger.info('Getting user login page...');
 
@@ -114,6 +179,16 @@ class UserAuthController {
     });
   }
 
+  /**
+   * Gets the user forget password page.
+   *
+   * If the user is already logged in, flashes an info message and redirects to the root page.
+   *
+   * @param {Request} req - HTTP request
+   * @param {Response} res - HTTP response
+   *
+   * @returns {Promise<void>} Promise resolved when the user forget password page is rendered
+   */
   async getUserForgetPasswordPage(req: Request, res: Response) {
     Logger.info('Getting user forget password page...');
 
@@ -169,13 +244,18 @@ class UserAuthController {
         },
       });
 
+      req.session.registeredUser = {
+        _id: newUser?._id.toString(),
+        username: newUser?.username,
+        email: newUser?.email,
+      };
+
       Logger.info('User has been registered successfully');
       req.flash('success', 'Account Verification email has been sent to your email');
-      return res.redirect(`/users/auth/verify-otp?userId=${newUser._id.toString()}`);
-    } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
-
-      req.flash('error', `${(error as Error).message}`);
+      return res.redirect('/users/auth/verify-otp');
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/users/auth/register');
     }
   }
@@ -228,10 +308,9 @@ class UserAuthController {
 
       req.flash('success', 'Account has been verified successfully please login');
       return res.redirect('/users/auth/login');
-    } catch (error) {
-      Logger.error(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/users/auth/verify-otp');
     }
   }
@@ -304,12 +383,11 @@ class UserAuthController {
       });
 
       req.flash('success', 'A new OTP has been sent to your email');
-      return res.redirect(`/users/auth/resend-otp?userId=${user._id.toString()}`);
-    } catch (error) {
-      Logger.warn((error as Error).message);
-
-      req.flash('error', (error as Error).message);
-      return res.redirect(`/users/auth/resend-otp?userId=${userId}`);
+      return res.redirect('/users/auth/resend-otp');
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
+      return res.redirect('/users/auth/resend-otp');
     }
   }
 
@@ -429,8 +507,7 @@ class UserAuthController {
         })
         .redirect('/');
     } catch (error: any) {
-      Logger.error(error);
-
+      Logger.error(error.message);
       req.flash('error', stripAnsi(error.message));
       return res.redirect('/users/auth/login');
     }
@@ -547,11 +624,10 @@ class UserAuthController {
       Logger.debug('Email sent for forgot password');
 
       req.flash('success', 'Password reset email has been sent to your email');
-      return res.redirect(`/users/auth/resend-verification?userId=${user._id}`);
-    } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
+      return res.redirect('/users/auth/resend-verification');
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/users/auth/forgot-password');
     }
   }
@@ -636,12 +712,12 @@ class UserAuthController {
       });
 
       req.flash('success', 'A new OTP has been sent to your email');
-      return res.redirect(`/users/auth/resend-verification?userId=${user._id.toString()}`);
-    } catch (error) {
-      Logger.warn((error as Error).message);
+      return res.redirect('/users/auth/resend-verification');
+    } catch (error: any) {
+      Logger.error(error.message);
 
-      req.flash('error', (error as Error).message);
-      return res.redirect(`/users/auth/resend-verification?userId=${userId}`);
+      req.flash('error', error.message);
+      return res.redirect('/users/auth/resend-verification');
     }
   }
 
@@ -712,10 +788,9 @@ class UserAuthController {
           .clearCookie('accessToken')
           .redirect('/users/auth/login');
       });
-    } catch (error) {
-      Logger.error((error as Error).message);
-
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect(`/users/auth/reset-password?token=${token}`);
     }
   }
@@ -736,6 +811,8 @@ class UserAuthController {
 
       req.flash('success', 'Logged out successfully');
 
+      req.session.user = null as any;
+
       req.session.destroy(() => {
         res
           .clearCookie('app_session')
@@ -743,10 +820,9 @@ class UserAuthController {
           .clearCookie('accessToken')
           .redirect('/users/auth/login');
       });
-    } catch (error) {
-      Logger.warn(`${(error as Error).message}`);
-
-      req.flash('error', (error as Error).message);
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
       return res.redirect('/users/auth/login');
     }
   }

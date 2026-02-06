@@ -19,6 +19,7 @@ import { redis } from '@config/redis.js';
 import { env } from '@config/env.js';
 import { redisDel, redisDelByPattern, redisGet, redisSet } from '@libs/redis.js';
 import { summarizeBlogWithAI } from '@libs/blogSummarizer.js';
+import { queueRedis } from '@config/queueRedis.js';
 
 class ClientController {
   async getIndexPage(req: Request, res: Response) {
@@ -549,6 +550,7 @@ class ClientController {
       if (existing) {
         await existing.deleteOne();
         liked = false;
+        req.flash('success', 'Blog unliked successfully');
 
         // TODO: Remove cached data
         // if (cacheKey) {
@@ -561,6 +563,7 @@ class ClientController {
           userId: req.user._id,
         });
         liked = true;
+        req.flash('success', 'Blog liked successfully');
         // if (cacheKey) {
         //   await redisDel(cacheKey);
         //   Logger.info('Delete blog details cached data');
@@ -862,10 +865,10 @@ class ClientController {
   }
 
   async handleBlogView(req: Request, res: Response) {
-    const blogId = req.params.blogId;
+    const blogId = req.params.id;
 
     const userId = req.user?._id?.toString();
-    
+
     const userAgent = req.headers['user-agent'];
     const userIp = req.ip;
 
@@ -873,12 +876,11 @@ class ClientController {
 
     const viewedKey = `blog:viewed:${blogId}:${viewerId}`;
 
-    const alreadyViewed = await redis.sismember(viewedKey, viewerId);
-    console.log(`ALREADY VIEWED`, alreadyViewed);
+    const alreadyViewed = await queueRedis.sismember(viewedKey, viewerId);
 
     if (!alreadyViewed) {
-      await redis.sadd(viewedKey, viewerId);
-      await redis.expire(viewedKey, 60 * 60 * 24);
+      await queueRedis.sadd(viewedKey, viewerId);
+      await queueRedis.expire(viewedKey, 60 * 60 * 24);
 
       const blog = await blogModel.findByIdAndUpdate(
         blogId,
@@ -940,9 +942,9 @@ class ClientController {
 
   async generateBlogSummary(req: Request, res: Response) {
     try {
-      const { blogId } = req.params;
+      const { id } = req.params;
 
-      const blog = await blogModel.findById(blogId).select('title content');
+      const blog = await blogModel.findById(id).select('title content');
 
       if (!blog) {
         return res.status(404).json({ status: false, statusCode: 404, message: 'Blog not found' });

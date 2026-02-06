@@ -10,7 +10,7 @@
   <!-- RIGHT -->
   <div class="flex items-center gap-5">
 
-    <!-- BACK -->
+    <!-- ⬅ Back Button -->
 <button
   id="backBtn"
   type="button"
@@ -20,10 +20,9 @@
   Back
 </button>
 
-    <!-- 🔔 NOTIFICATIONS -->
-    <div class="relative">
 
-      <!-- Bell -->
+    <!-- 🔔 Notifications -->
+    <div class="relative">
       <button
         id="notification-bell"
         type="button"
@@ -31,7 +30,7 @@
       >
         <i class="fa-regular fa-bell text-lg"></i>
 
-        <% if (totalUnreadNotifications > 0) { %>
+        <% if ((totalUnreadNotifications || 0)) { %>
           <span
             id="notification-badge"
             class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-medium"
@@ -42,7 +41,7 @@
       </button>
 
       <!-- DROPDOWN -->
-      <div
+<div
   id="notification-dropdown"
   class="hidden absolute right-0 mt-3 w-96 bg-white border rounded-xl shadow-xl z-50 overflow-hidden"
 >
@@ -107,7 +106,7 @@
       <!-- READ MORE -->
       <% if (totalNotifications > notifications.length) { %>
         <a
-          href="/authors/notifications"
+          href="/admins/notifications"
           class="block px-4 py-3 text-center text-sm font-medium text-indigo-600 hover:bg-indigo-50 transition"
         >
           Read more →
@@ -125,9 +124,10 @@
     <% } %>
   </div>
 </div>
+
     </div>
 
-    <!-- LOGOUT -->
+    <!-- 🚪 Logout -->
     <form action="/admins/auth/logout" method="POST">
       <button
         type="submit"

@@ -17,5 +17,10 @@ declare module 'express-session' {
       createdAt: Date;
       updatedAt: Date;
     };
+    registeredUser: {
+      _id: string;
+      username: string;
+      email: string;
+    };
   }
 }

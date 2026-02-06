@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { redis } from '@config/redis.js';
 
@@ -7,10 +7,10 @@ export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5,
 
-  // Key generator for redis store based on request
   keyGenerator: (req: Request) => {
     const email = req.body?.email || 'unknown';
-    return `${req.ip}:${email}`;
+    const safeIp = ipKeyGenerator(req?.ip || 'unknown');
+    return `${safeIp}:${email}`;
   },
 
   standardHeaders: true,

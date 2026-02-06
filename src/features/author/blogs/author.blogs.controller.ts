@@ -14,136 +14,109 @@ import { sendEmailService } from 'mail/index.js';
 import { blogUnwantedContentTemplate } from 'mail/templates/blog/unwantedContent.template.js';
 import { env } from '@config/env.js';
 import { analyzeBlog } from '@libs/blogReviewer.js';
-import { redisGet, redisSet } from '@libs/redis.js';
 
 class AuthorBlogController {
   async getAuthorBlogsPage(req: Request, res: Response) {
-    Logger.info('Getting author blogs page...');
+    try {
+      Logger.info('Getting publisher blog page...');
 
-    const authorId = req?.user?._id;
-    const page = Number(req.query.page) || 1;
-    const limit = 10;
+      const authorId = req?.user?._id;
 
-    const cacheKey = `author:blogs:page:${page}:limit:${limit}:authorId:${authorId}`;
+      const page = Number(req.query.page) || 1;
+      const limit = 8;
+      const options = {
+        page,
+        limit,
+      };
 
-    if (cacheKey) {
-      Logger.info('Fetching author blogs from cache...');
-      const cachedData = await redisGet(cacheKey);
-      if (cachedData) {
-        return res.render('authors/blogs', cachedData);
-      }
-    }
-
-    // Aggregate blogs
-    const aggregate = blogModel.aggregate([
-      {
-        $match: {
-          authorId: new mongoose.Types.ObjectId(authorId),
-        },
-      },
-      {
-        $lookup: {
-          from: 'categories',
-          localField: 'categories',
-          foreignField: '_id',
-          as: 'categories',
-        },
-      },
-      {
-        $lookup: {
-          from: 'likes',
-          localField: '_id',
-          foreignField: 'blogId',
-          as: 'likes',
-        },
-      },
-      {
-        $lookup: {
-          from: 'comments',
-          localField: '_id',
-          foreignField: 'blogId',
-          as: 'comments',
-        },
-      },
-      {
-        $lookup: {
-          from: 'bookmarks',
-          localField: '_id',
-          foreignField: 'blogId',
-          as: 'bookmarks',
-        },
-      },
-      {
-        $addFields: {
-          likeCount: { $size: '$likes' },
-          commentCount: { $size: '$comments' },
-          bookmarkCount: { $size: '$bookmarks' },
-        },
-      },
-      {
-        $sort: {
-          createdAt: -1,
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          title: 1,
-          slug: 1,
-          categories: {
-            _id: 1,
-            name: 1,
+      const blogs = await blogModel.aggregatePaginate(
+        blogModel.aggregate([
+          {
+            $match: {
+              authorId: new mongoose.Types.ObjectId(authorId),
+            },
           },
-          tags: 1,
-          status: 1,
-          stats: 1,
-          likeCount: 1,
-          commentCount: 1,
-          bookmarkCount: 1,
-          createdAt: 1,
-          publishedAt: 1,
-        },
-      },
-    ]);
+          {
+            $lookup: {
+              from: 'categories',
+              localField: 'categories',
+              foreignField: '_id',
+              as: 'categories',
+            },
+          },
+          {
+            $lookup: {
+              from: 'likes',
+              localField: '_id',
+              foreignField: 'blogId',
+              as: 'likes',
+            },
+          },
+          {
+            $lookup: {
+              from: 'comments',
+              localField: '_id',
+              foreignField: 'blogId',
+              as: 'comments',
+            },
+          },
+          {
+            $lookup: {
+              from: 'bookmarks',
+              localField: '_id',
+              foreignField: 'blogId',
+              as: 'bookmarks',
+            },
+          },
+          {
+            $addFields: {
+              likeCount: { $size: '$likes' },
+              commentCount: { $size: '$comments' },
+              bookmarkCount: { $size: '$bookmarks' },
+            },
+          },
+          {
+            $project: {
+              likes: 0,
+              comments: 0,
+              bookmarks: 0,
+            },
+          },
+          {
+            $sort: { createdAt: -1 },
+          },
+        ]),
+        options,
+      );
 
-    // Get blogs and pagination with aggregate
-    const blogs = await blogModel.aggregatePaginate(aggregate, {
-      page,
-      limit,
-    });
+      console.log('AUTHOR VLOGS', blogs);
 
-    // Get notifications, total notifications and total unread notifications
-    const [notifications, totalNotifications, totalUnreadNotifications] = await Promise.all([
-      notificationModel.find({ recipientId: authorId }).sort({ createdAt: -1 }),
-      notificationModel.countDocuments({ recipientId: authorId }),
-      notificationModel.countDocuments({ recipientId: authorId, isRead: false }),
-    ]);
+      /**
+       * Get notifications
+       * Count total notifications
+       * Count total unread notifications
+       */
+      const [notifications, totalNotifications, totalUnreadNotifications] = await Promise.all([
+        notificationModel.find({ recipientId: authorId }).sort({ createdAt: -1 }).limit(8).lean(),
+        notificationModel.countDocuments({ recipientId: authorId }),
+        notificationModel.countDocuments({ recipientId: authorId, isRead: false }),
+      ]);
 
-    await redisSet(
-      cacheKey,
-      {
+      return res.render('authors/blogs', {
         title: 'Author | Blogs',
         pageTitle: 'Author Blogs',
         currentPath: '/authors/blogs',
+        author: req?.user,
         blogs,
-        author: req.user,
         notifications,
-        totalUnreadNotifications,
         totalNotifications,
-      },
-      300,
-    );
-
-    return res.render('authors/blogs', {
-      title: 'Author | Blogs',
-      pageTitle: 'Author Blogs',
-      currentPath: '/authors/blogs',
-      blogs,
-      author: req.user,
-      notifications,
-      totalUnreadNotifications,
-      totalNotifications,
-    });
+        totalUnreadNotifications,
+      });
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
+      return res.redirect('/publishers/blogs');
+    }
   }
 
   async getAuthorCreateBlogPage(req: Request, res: Response) {
@@ -171,6 +144,43 @@ class AuthorBlogController {
     });
   }
 
+  async getAuthEditBlogPage(req: Request, res: Response) {
+    try {
+      Logger.info('Editing blog...');
+
+      const authorId = req?.user?._id;
+      const blogId = req.params.id;
+
+      const [blog, categories, notifications, totalNotifications, totalUnreadNotifications] =
+        await Promise.all([
+          blogModel.findById(blogId).populate({
+            path: 'authorId',
+            select: 'username',
+          }),
+          categoryModel.find({ isDeleted: false }),
+          notificationModel.find({ recipientId: authorId }).sort({ createdAt: -1 }).limit(8).lean(),
+          notificationModel.countDocuments({ recipientId: authorId }),
+          notificationModel.countDocuments({ recipientId: authorId, isRead: false }),
+        ]);
+
+      return res.render('authors/edit-blog', {
+        title: 'Author | Edit Blog',
+        pageTitle: 'Edit Blog',
+        currentPath: '/authors/blogs',
+        author: req.user,
+        blog,
+        categories,
+        notifications,
+        totalUnreadNotifications,
+        totalNotifications,
+      });
+    } catch (error: any) {
+      Logger.error(error.message);
+      req.flash('error', error.message);
+      return res.redirect('/authors/blogs');
+    }
+  }
+
   async createBlogHandler(req: Request, res: Response) {
     try {
       Logger.info('Author creating blog...');
@@ -191,8 +201,6 @@ class AuthorBlogController {
       if (!textOnlyContent) {
         throw new Error('Blog content cannot be empty');
       }
-
-      // console.log(`Text only content`, textOnlyContent);
 
       // get admin and publisher
       const [admin, publisher] = await Promise.all([
@@ -345,9 +353,9 @@ class AuthorBlogController {
       req.flash('error', (error as Error).message);
       return res.redirect('/authors/blogs/create');
     } finally {
-      if (req.file && req.file.path) {
+      if (req?.file && req?.file?.path) {
         try {
-          fs.unlink(req.file.path);
+          fs.unlink(req?.file?.path);
           Logger.info('Local file path deleted successfully');
         } catch (error) {
           Logger.error(`Local file path deleted failed: ${(error as Error).message}`);
@@ -359,9 +367,19 @@ class AuthorBlogController {
   async updateBlogHandler(req: Request, res: Response) {
     try {
       Logger.info('Update blog handler calling...');
+      const blogId = req.params.id;
+      const authorId = req?.user?._id;
+
+      const 
+
+      const blog = await blogModel.findById(blogId);
+      if(!blog) {
+        throw new Error('Blog not found');
+      }
+
+
     } catch (error) {
       Logger.error(`${(error as Error).message}`);
-
       req.flash('error', (error as Error).message);
       return res.redirect('/authors/blogs');
     }

@@ -14,6 +14,9 @@ import {
 } from 'validations/auth.validations.js';
 import { registerLimiter } from '@middlewares/rateLimit/registerLimiter.js';
 import { verifyLimiter } from '@middlewares/rateLimit/verifyLimiter.js';
+import { loginLimiter } from '@middlewares/rateLimit/loginLimiter.js';
+import { forgotPasswordLimiter } from '@middlewares/rateLimit/forgotPasswordLimiter.js';
+import { resetPasswordLimiter } from '@middlewares/rateLimit/resetPasswordLimiter.js';
 
 const router: Router = Router();
 
@@ -43,14 +46,21 @@ router.post('/resend-otp', verifyLimiter, userAuthController.userResendOTPHandle
 
 router.post(
   '/resend-verification',
+  verifyLimiter,
   validateRequest(resendOtpSchema),
   userAuthController.userResendForgotPasswordLinkHandler,
 );
 
-router.post('/login', validateRequest(loginSchema), userAuthController.userLoginHandler);
+router.post(
+  '/login',
+  loginLimiter,
+  validateRequest(loginSchema),
+  userAuthController.userLoginHandler,
+);
 
 router.post(
   '/forgot-password',
+  forgotPasswordLimiter,
   validateRequest(forgotPasswordSchema),
   userAuthController.userForgotPasswordHandler,
 );
@@ -58,6 +68,7 @@ router.post(
 router.post(
   '/reset-password',
   validateRequest(resetPasswordSchema),
+  resetPasswordLimiter,
   userAuthController.userResetPasswordHandler,
 );
 

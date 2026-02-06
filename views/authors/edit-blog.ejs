@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include("../partials/head.ejs", { title }) %>
+
+<body class="bg-gray-100 min-h-screen">
+<%- include("../partials/toast.ejs") %>
+
+<div class="flex min-h-screen">
+
+  <!-- SIDEBAR -->
+  <%- include("./components/sidebar.ejs", { currentPath, author, pageTitle }) %>
+
+  <!-- MAIN AREA -->
+  <div class="flex-1 flex flex-col">
+
+    <!-- HEADER -->
+    <%- include("./components/main-header.ejs", {
+      author,
+      totalUnreadNotifications,
+      totalNotifications,
+      notifications
+    }) %>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-6">
+
+      <!-- PAGE HEADER -->
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            ✏️ Update Blog
+          </h1>
+          <p class="text-sm text-gray-500 mt-1">
+            Editing this blog may require re-approval
+          </p>
+        </div>
+
+        <a
+          href="/authors/blogs"
+          class="text-sm font-medium text-gray-600 hover:text-indigo-600 flex items-center gap-2"
+        >
+          ← Back to Blogs
+        </a>
+      </div>
+
+      <!-- FORM -->
+      <form
+        action="/authors/blogs/<%= blog._id %>/edit?_method=PUT"
+        method="POST"
+        enctype="multipart/form-data"
+        class="grid grid-cols-1 lg:grid-cols-3 gap-8"
+      >
+
+        <!-- LEFT CONTENT -->
+        <div class="lg:col-span-2 space-y-6">
+
+          <!-- TITLE -->
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              Blog Title
+            </label>
+            <input
+              type="text"
+              name="title"
+              value="<%= blog.title %>"
+              required
+              class="w-full text-lg font-medium border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          <!-- EXCERPT -->
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              Short Excerpt
+            </label>
+            <textarea
+              name="excerpt"
+              rows="3"
+              required
+              class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500"
+            ><%= blog.excerpt %></textarea>
+          </div>
+
+          <!-- CONTENT -->
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              Blog Content
+            </label>
+
+            <div id="editor" class="h-96"></div>
+            <textarea name="content" id="content" hidden></textarea>
+          </div>
+        </div>
+
+        <!-- RIGHT SETTINGS -->
+        <aside class="space-y-6">
+
+          <!-- COVER IMAGE -->
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-3">
+              Cover Image
+            </label>
+
+            <!-- Preview -->
+            <img
+              id="imagePreview"
+              src="<%= blog.coverImage?.url %>"
+              class="w-full h-40 object-cover rounded-lg border mb-3"
+            />
+
+            <input
+              id="coverImage"
+              type="file"
+              name="coverImage"
+              accept="image/*"
+              class="block w-full text-sm text-gray-600
+                     file:mr-4 file:py-2 file:px-4
+                     file:rounded-md file:border-0
+                     file:text-sm file:font-medium
+                     file:bg-indigo-50 file:text-indigo-600
+                     hover:file:bg-indigo-100"
+            />
+
+            <p class="text-xs text-gray-400 mt-2">
+              Upload only if you want to replace the image
+            </p>
+          </div>
+
+          <!-- CATEGORIES -->
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-3">
+              Categories
+            </label>
+
+            <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+              <% categories.forEach(cat => { %>
+                <label class="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    class="category-checkbox"
+                    name="categories[]"
+                    value="<%= cat._id %>"
+                    <%= blog.categories.includes(cat._id.toString()) ? 'checked' : '' %>
+                  />
+                  <%= cat.name %>
+                </label>
+              <% }) %>
+            </div>
+          </div>
+
+          <!-- TAGS -->
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              Tags
+            </label>
+
+            <input
+              id="tags"
+              type="text"
+              name="tags"
+              value="<%= blog.tags.join(', ') %>"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+            />
+
+            <p class="text-xs text-gray-400 mt-2">
+              You can add or remove tags
+            </p>
+          </div>
+
+          <!-- INFO -->
+          <div class="rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-700">
+            <i class="fa-solid fa-clock mr-1"></i>
+            Blog updates may require admin review
+          </div>
+
+          <!-- SUBMIT -->
+          <button
+            type="submit"
+            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition"
+          >
+            💾 Update Blog
+          </button>
+
+        </aside>
+      </form>
+    </main>
+
+    <%- include("./components/footer.ejs", { author }) %>
+  </div>
+</div>
+
+<%- include('../partials/toast-script.ejs') %>
+<%- include("./components/icon-hover.ejs") %>
+<%- include("./components/back-button.ejs") %>
+<%- include("./components/real-time.ejs") %>
+
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const quill = new Quill('#editor', { theme: 'snow' });
+  const contentInput = document.getElementById('content');
+
+  quill.root.innerHTML = `<%- blog.content.replace(/\n/g, '<br>') %>`;
+  contentInput.value = quill.root.innerHTML;
+
+  quill.on('text-change', () => {
+    contentInput.value = quill.root.innerHTML;
+  });
+
+  // Image preview
+  const fileInput = document.getElementById('coverImage');
+  const preview = document.getElementById('imagePreview');
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = e => preview.src = e.target.result;
+    reader.readAsDataURL(file);
+  });
+});
+</script>
+</body>
+</html>

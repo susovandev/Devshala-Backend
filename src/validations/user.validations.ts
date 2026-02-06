@@ -49,7 +49,7 @@ export const objectIdSchema = z
     message: 'Invalid MongoDB ObjectId',
   });
 
-export const userIdParam = z.object({
+export const IdSchema = z.object({
   id: objectIdSchema,
 });
 

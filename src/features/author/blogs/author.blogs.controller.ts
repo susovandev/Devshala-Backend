@@ -370,14 +370,10 @@ class AuthorBlogController {
       const blogId = req.params.id;
       const authorId = req?.user?._id;
 
-      const 
-
       const blog = await blogModel.findById(blogId);
-      if(!blog) {
+      if (!blog) {
         throw new Error('Blog not found');
       }
-
-
     } catch (error) {
       Logger.error(`${(error as Error).message}`);
       req.flash('error', (error as Error).message);

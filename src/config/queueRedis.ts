@@ -1,4 +1,3 @@
-// redis.queue.ts
 import { Redis } from 'ioredis';
 
 export const queueRedis = new Redis({

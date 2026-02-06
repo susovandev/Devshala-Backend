@@ -9,11 +9,11 @@ const redis = createClient({
 });
 
 redis.on('connect', () => {
-  console.log('✅ Redis connected (node-redis)');
+  console.log('Redis connected (node-redis)');
 });
 
 redis.on('error', (err) => {
-  console.error('❌ Redis error', err);
+  console.error('Redis error', err);
 });
 
 await redis.connect();

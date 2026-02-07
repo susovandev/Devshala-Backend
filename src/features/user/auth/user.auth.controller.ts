@@ -10,8 +10,9 @@ import {
   ACCESS_TOKEN_EXPIRATION_TIME,
   REFRESH_TOKEN_EXPIRATION_TIME,
   RESET_PASSWORD_TOKEN_EXPIRATION_TIME,
+  VERIFICATION_CODE_EXPIRATION_TIME,
 } from 'constants/index.js';
-import emailModel, { EmailSource, EmailType } from 'models/email.model.js';
+import emailModel, { EmailSource, EmailStatus, EmailType } from 'models/email.model.js';
 import { env } from '@config/env.js';
 import { LoginStatus } from 'models/login.model.js';
 import forgotPasswordEmailTemplate from 'mail/templates/auth/forgotPasswordEmail.template.js';
@@ -21,6 +22,10 @@ import { sendEmailQueue } from 'queues/sendEmail.queue.js';
 import { logoutCleanupQueue } from 'queues/logoutCleanup.queue.js';
 import refreshTokenModel from 'models/refreshToken.model.js';
 import stripAnsi from 'strip-ansi';
+import emailVerificationEmailTemplate from 'mail/templates/auth/emailVerification.template.js';
+import { sendEmailService } from 'mail/index.js';
+import notificationModel, { NotificationType } from 'models/notification.model.js';
+import { getSocketIO } from 'socket/socket.instance.js';
 
 class UserAuthController {
   /**
@@ -211,38 +216,97 @@ class UserAuthController {
 
       const normalizedEmail = email.trim().toLowerCase();
 
-      // 1. Check user is already registered or not by email or username
       const user = await userModel.findOne({
         $or: [{ username }, { email: normalizedEmail }],
       });
 
-      // 2. If user is already registered, throw error
       if (user) {
         throw new Error('Your account is already registered please try login');
       }
 
-      // 3. Hash Password
       const hashPassword = await authHelper.hashPasswordHelper(password);
       if (!hashPassword) {
         Logger.warn('Hashing password failed');
         throw new Error('Error occurred while registering your account please try again');
       }
 
-      // 4. Create new user in DB
       const newUser = await userModel.create({
         username,
         email,
         passwordHash: hashPassword,
       });
 
-      // TODO: BULL MQ
-      await registerQueue.add('registerUser', {
-        newUser: {
-          _id: newUser?._id.toString(),
-          username: newUser?.username,
-          email: newUser?.email,
-        },
-      });
+      try {
+        const rawVerificationCode = authHelper.generateRandomOtp();
+        if (!rawVerificationCode) {
+          Logger.warn('Generating random OTP failed');
+          throw new Error('Error occurred while generating raw verification code');
+        }
+
+        const hashedVerificationHashCode = await authHelper.hashVerifyOtpHelper(
+          rawVerificationCode.toString(),
+        );
+        if (!hashedVerificationHashCode) {
+          Logger.warn('Hashing verification code failed');
+          throw new Error('Error occurred while hashing verification code');
+        }
+
+        const newVerificationCodeRecord = await verificationCodeModel.create({
+          userId: newUser._id,
+          verificationCode: hashedVerificationHashCode,
+          verificationCodeExpiration: new Date(Date.now() + VERIFICATION_CODE_EXPIRATION_TIME),
+          verificationType: VerificationType.EMAIL_VERIFICATION,
+        });
+
+        const newEmailRecord = await emailModel.create({
+          recipient: newUser._id,
+          recipientEmail: newUser.email,
+          subject: 'Account Verification',
+          source: EmailSource.SYSTEM,
+          sendAt: new Date(),
+          status: EmailStatus.PENDING,
+          type: EmailType.EMAIL_VERIFICATION,
+          body: emailVerificationEmailTemplate({
+            USERNAME: newUser.username,
+            SUPPORT_EMAIL: env.SUPPORT_EMAIL,
+            OTP: rawVerificationCode.toString(),
+            EXPIRY_MINUTES: VERIFICATION_CODE_EXPIRATION_TIME / 1000 / 60,
+            YEAR: new Date().getFullYear(),
+          }),
+        });
+        if (!newEmailRecord) {
+        }
+
+        await sendEmailService({
+          subject: newEmailRecord.subject,
+          recipient: newEmailRecord.recipientEmail,
+          htmlTemplate: newEmailRecord.body,
+        });
+
+        const admin = await userModel.findOne({ role: UserRole.ADMIN, isDeleted: false });
+        if (!admin) {
+        }
+
+        const adminNotification = await notificationModel.create({
+          recipientId: admin?._id,
+          actorId: newUser?._id,
+          type: NotificationType.NEW_USER,
+          message: `${newUser.username} has been registered`,
+          isRead: false,
+          redirectUrl: `/admin/users`,
+        });
+
+        const io = getSocketIO();
+        io.to(`admin:`).emit('notification:new', {
+          type: 'user',
+          message: `${newUser.username} has been registered`,
+        });
+
+        io.to(`admin:${admin!._id}`).emit('notification:new', adminNotification);
+      } catch (error) {
+        Logger.error(`Failed to register user document: ${(error as Error).message}`);
+        throw error;
+      }
 
       req.session.registeredUser = {
         _id: newUser?._id.toString(),

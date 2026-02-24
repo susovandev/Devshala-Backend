@@ -152,7 +152,7 @@ class AdminPublisherController {
           password: randomStrongPassword,
           loginUrl: `${env.BASE_URL}/publishers/auth/login`,
           year: new Date().getFullYear(),
-          supportEmail: env.SUPPORT_EMAIL,
+          supportEmail: env.SUPPORT_EMAIL as string,
         }),
         source: UserRole.PUBLISHER,
         sendAt: new Date(Date.now()),

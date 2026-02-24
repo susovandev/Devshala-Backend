@@ -157,7 +157,7 @@ class PublisherAuthorController {
           password: randomStrongPassword,
           loginUrl: `${env.BASE_URL}/authors/auth/login`,
           year: new Date().getFullYear(),
-          supportEmail: env.SUPPORT_EMAIL,
+          supportEmail: env.SUPPORT_EMAIL as string,
         }),
       });
 

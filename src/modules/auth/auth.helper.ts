@@ -83,9 +83,13 @@ class AuthHelper {
       sub: user._id.toString(),
       role: user.role,
     };
-    const accessToken = jwt.sign(payload, env.ACCESS_TOKEN_SECRET_KEY, {
-      expiresIn: ACCESS_TOKEN_EXPIRATION_TIME,
-    } as jwt.SignOptions);
+    const accessToken = jwt.sign(
+      payload,
+      env.ACCESS_TOKEN_SECRET_KEY as string,
+      {
+        expiresIn: ACCESS_TOKEN_EXPIRATION_TIME,
+      } as jwt.SignOptions,
+    );
     if (!accessToken) return null;
     return accessToken;
   }
@@ -97,9 +101,13 @@ class AuthHelper {
       sub: user._id.toString(),
       role: user.role,
     };
-    const refreshToken = jwt.sign(payload, env.REFRESH_TOKEN_SECRET_KEY, {
-      expiresIn: REFRESH_TOKEN_EXPIRATION_TIME,
-    } as jwt.SignOptions);
+    const refreshToken = jwt.sign(
+      payload,
+      env.REFRESH_TOKEN_SECRET_KEY as string,
+      {
+        expiresIn: REFRESH_TOKEN_EXPIRATION_TIME,
+      } as jwt.SignOptions,
+    );
     if (!refreshToken) return null;
     return refreshToken;
   }
@@ -119,7 +127,7 @@ class AuthHelper {
 
   verifyAccessToken(token: string): jwt.JwtPayload | null {
     Logger.debug('Verifying access token...');
-    const decoded = jwt.verify(token, env.ACCESS_TOKEN_SECRET_KEY) as jwt.JwtPayload;
+    const decoded = jwt.verify(token, env.ACCESS_TOKEN_SECRET_KEY as string) as jwt.JwtPayload;
     if (!decoded) {
       return null;
     }
@@ -128,7 +136,7 @@ class AuthHelper {
 
   verifyRefreshToken(token: string): jwt.JwtPayload | null {
     Logger.debug('Verifying refresh token...');
-    const decoded = jwt.verify(token, env.REFRESH_TOKEN_SECRET_KEY) as jwt.JwtPayload;
+    const decoded = jwt.verify(token, env.REFRESH_TOKEN_SECRET_KEY as string) as jwt.JwtPayload;
     if (!decoded) {
       return null;
     }
@@ -141,7 +149,7 @@ class AuthHelper {
       role: user.role,
     };
 
-    const token = jwt.sign(payload, env.FORGOT_PASSWORD_SECRET_KEY, {
+    const token = jwt.sign(payload, env.FORGOT_PASSWORD_SECRET_KEY as string, {
       expiresIn: RESET_PASSWORD_TOKEN_EXPIRATION_TIME,
     });
 
@@ -155,7 +163,7 @@ class AuthHelper {
     if (!token) return null;
 
     try {
-      const decoded = jwt.verify(token, env.FORGOT_PASSWORD_SECRET_KEY) as jwt.JwtPayload;
+      const decoded = jwt.verify(token, env.FORGOT_PASSWORD_SECRET_KEY as string) as jwt.JwtPayload;
 
       if (!decoded) {
         return null;

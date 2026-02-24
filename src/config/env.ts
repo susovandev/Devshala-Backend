@@ -1,46 +1,42 @@
-import { z } from 'zod';
+console.log(process.env.NODE_ENV);
+console.log(process.env.DATABASE_URI);
+console.log(process.env.DATABASE_NAME);
+const _config = {
+  NODE_ENV: process.env.NODE_ENV,
+  PORT: process.env.PORT,
+  HOST: process.env.HOST,
+  BASE_URL: process.env.BASE_URL,
 
-const BaseEnvSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.coerce.number().default(5555),
-  HOST: z.string().default('127.0.0.1'),
-  BASE_URL: z.string().default('http://localhost:5555'),
+  SERVICE_NAME: process.env.SERVICE_NAME,
+  API_VERSION: process.env.API_VERSION,
+  SUPPORT_EMAIL: process.env.SUPPORT_EMAIL,
 
-  SERVICE_NAME: z.string().default('DevshalaBackend'),
-  API_VERSION: z.string().default('1.0.0'),
-  SUPPORT_EMAIL: z.string().default('FgM5j@example.com'),
+  CLIENT_URL: process.env.CLIENT_URL,
+  CLIENT_PRODUCTION_URL: process.env.CLIENT_PRODUCTION_URL,
 
-  CLIENT_URL: z.string().default('http://localhost:3000'),
-  CLIENT_PRODUCTION_URL: z.string().default('http://localhost:3001'),
+  MAIL_SERVICE: process.env.MAIL_SERVICE,
+  MAIL_HOST: process.env.MAIL_HOST,
+  MAIL_PORT: process.env.MAIL_PORT,
+  MAIL_USER: process.env.MAIL_USER,
+  MAIL_PASSWORD: process.env.MAIL_PASSWORD,
 
-  MAIL_SERVICE: z.string().default('gmail'),
-  MAIL_HOST: z.string().default('smtp.gmail.com'),
-  MAIL_PORT: z.coerce.number().default(465),
-  MAIL_USER: z.string().default('FgM5j@example.com'),
-  MAIL_PASSWORD: z.string().default('password'),
+  ACCESS_TOKEN_SECRET_KEY: process.env.ACCESS_TOKEN_SECRET_KEY,
+  REFRESH_TOKEN_SECRET_KEY: process.env.REFRESH_TOKEN_SECRET_KEY,
 
-  ACCESS_TOKEN_SECRET_KEY: z.string().default('access-token-secret-key'),
-  REFRESH_TOKEN_SECRET_KEY: z.string().default('refresh-token-secret-key'),
+  FORGOT_PASSWORD_SECRET_KEY: process.env.FORGOT_PASSWORD_SECRET_KEY,
 
-  FORGOT_PASSWORD_SECRET_KEY: z.string().default('forgot-password-secret-key'),
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
 
-  CLOUDINARY_CLOUD_NAME: z.string().optional(),
-  CLOUDINARY_API_KEY: z.string().optional(),
-  CLOUDINARY_API_SECRET: z.string().optional(),
+  SESSION_SECRET: process.env.SESSION_SECRET,
 
-  SESSION_SECRET: z.string().default('session-secret'),
+  REDIS_HOST: process.env.REDIS_HOST,
+  REDIS_PORT: process.env.REDIS_PORT,
+  REDIS_PASSWORD: process.env.REDIS_PASSWORD,
 
-  REDIS_HOST: z.string().default('localhost'),
-  REDIS_PORT: z.coerce.number().default(6379),
-  REDIS_PASSWORD: z.string().optional(),
-});
+  DATABASE_URI: process.env.DATABASE_URI,
+  DATABASE_NAME: process.env.DATABASE_NAME,
+};
 
-const DatabaseEnvSchema = z.object({
-  DATABASE_URI: z.string(),
-  DATABASE_NAME: z.string(),
-});
-
-const EnvSchema =
-  process.env.NODE_ENV === 'test' ? BaseEnvSchema : BaseEnvSchema.merge(DatabaseEnvSchema);
-
-export const env = EnvSchema.passthrough().parse(process.env);
+export const env = Object.freeze(_config);

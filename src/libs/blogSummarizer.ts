@@ -1,6 +1,7 @@
+import { env } from '@config/env.js';
 import Groq from 'groq-sdk';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const groq = new Groq({ apiKey: env.GROQ_API_KEY });
 export const summarizeBlogWithAI = async (title: string, content: string) => {
   const prompt = `
 Summarize the following blog in 5–6 simple sentences.

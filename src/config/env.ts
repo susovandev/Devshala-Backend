@@ -1,6 +1,3 @@
-console.log(process.env.NODE_ENV);
-console.log(process.env.DATABASE_URI);
-console.log(process.env.DATABASE_NAME);
 const _config = {
   NODE_ENV: process.env.NODE_ENV,
   PORT: process.env.PORT,
@@ -37,6 +34,8 @@ const _config = {
 
   DATABASE_URI: process.env.DATABASE_URI,
   DATABASE_NAME: process.env.DATABASE_NAME,
+
+  GROQ_API_KEY: process.env.GROQ_API_KEY,
 };
 
 export const env = Object.freeze(_config);

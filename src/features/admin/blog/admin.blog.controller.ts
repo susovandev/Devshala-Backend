@@ -232,7 +232,7 @@ class AdminBlogController {
       if (!textOnlyContent) {
         throw new Error('Blog content cannot be empty');
       }
-      
+
       const isTechBlog = await analyzeBlog({
         title,
         excerpt,

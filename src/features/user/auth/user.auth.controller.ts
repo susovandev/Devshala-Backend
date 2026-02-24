@@ -14,7 +14,7 @@ import {
 } from 'constants/index.js';
 import emailModel, { EmailSource, EmailStatus, EmailType } from 'models/email.model.js';
 import { env } from '@config/env.js';
-import { LoginStatus } from 'models/login.model.js';
+import loginModel, { LoginStatus } from 'models/login.model.js';
 import forgotPasswordEmailTemplate from 'mail/templates/auth/forgotPasswordEmail.template.js';
 import { registerQueue } from 'queues/register.queue.js';
 import { loginTrackerQueue } from 'queues/loginTracker.queue.js';
@@ -437,14 +437,56 @@ class UserAuthController {
         { upsert: true, new: true },
       );
 
-      // TODO: BULL MQ
-      await registerQueue.add('registerUser', {
-        newUser: {
-          _id: user?._id.toString(),
-          username: user?.username,
-          email: user?.email,
-        },
-      });
+      try {
+        const rawVerificationCode = authHelper.generateRandomOtp();
+        if (!rawVerificationCode) {
+          Logger.warn('Generating random OTP failed');
+          throw new Error('Error occurred while generating raw verification code');
+        }
+
+        const hashedVerificationHashCode = await authHelper.hashVerifyOtpHelper(
+          rawVerificationCode.toString(),
+        );
+        if (!hashedVerificationHashCode) {
+          Logger.warn('Hashing verification code failed');
+          throw new Error('Error occurred while hashing verification code');
+        }
+
+        const newVerificationCodeRecord = await verificationCodeModel.create({
+          userId: user._id,
+          verificationCode: hashedVerificationHashCode,
+          verificationCodeExpiration: new Date(Date.now() + VERIFICATION_CODE_EXPIRATION_TIME),
+          verificationType: VerificationType.EMAIL_VERIFICATION,
+        });
+
+        const newEmailRecord = await emailModel.create({
+          recipient: user._id,
+          recipientEmail: user.email,
+          subject: 'Account Verification',
+          source: EmailSource.SYSTEM,
+          sendAt: new Date(),
+          status: EmailStatus.PENDING,
+          type: EmailType.EMAIL_VERIFICATION,
+          body: emailVerificationEmailTemplate({
+            USERNAME: user.username,
+            SUPPORT_EMAIL: env.SUPPORT_EMAIL,
+            OTP: rawVerificationCode.toString(),
+            EXPIRY_MINUTES: VERIFICATION_CODE_EXPIRATION_TIME / 1000 / 60,
+            YEAR: new Date().getFullYear(),
+          }),
+        });
+        if (!newEmailRecord) {
+        }
+
+        await sendEmailService({
+          subject: newEmailRecord.subject,
+          recipient: newEmailRecord.recipientEmail,
+          htmlTemplate: newEmailRecord.body,
+        });
+      } catch (error) {
+        Logger.error(`Failed to register user document: ${(error as Error).message}`);
+        throw error;
+      }
 
       req.flash('success', 'A new OTP has been sent to your email');
       return res.redirect('/users/auth/resend-otp');
@@ -469,19 +511,18 @@ class UserAuthController {
         .findOne({ email: normalizedEmail, isEmailVerified: true, role: UserRole.USER })
         .select('+passwordHash');
       if (!user) {
-        await loginTrackerQueue.add('login-tracker', {
+        await loginModel.create({
           userId: 'GUEST',
           lastLoginIp: ip,
           lastLoginUserAgent: userAgent,
           lastLoginStatus: LoginStatus.FAILED,
         });
-
         throw new Error('Invalid email or password');
       }
 
       // 2. Check user is blocked or disabled or deleted
       if (user.status !== UserStatus.ACTIVE) {
-        await loginTrackerQueue.add('login-tracker', {
+        await loginModel.create({
           userId: user._id.toString(),
           lastLoginIp: ip,
           lastLoginUserAgent: userAgent,
@@ -497,7 +538,7 @@ class UserAuthController {
         user.passwordHash,
       );
       if (!isPasswordCompareCorrect) {
-        await loginTrackerQueue.add('login-tracker', {
+        await loginModel.create({
           userId: user._id.toString(),
           lastLoginIp: ip,
           lastLoginUserAgent: userAgent,
@@ -511,7 +552,7 @@ class UserAuthController {
       const tokens = authHelper.signAccessTokenAndRefreshToken(user);
       if (!tokens) {
         Logger.warn('Generating JWT tokens failed');
-        await loginTrackerQueue.add('login-tracker', {
+        await loginModel.create({
           userId: user._id.toString(),
           lastLoginIp: ip,
           lastLoginUserAgent: userAgent,
@@ -531,7 +572,7 @@ class UserAuthController {
 
       Logger.debug('User has been logged in successfully');
 
-      await loginTrackerQueue.add('login-tracker', {
+      await loginModel.create({
         userId: user._id.toString(),
         lastLoginIp: ip,
         lastLoginUserAgent: userAgent,
@@ -666,7 +707,7 @@ class UserAuthController {
       const resetPasswordLink = `${env.CLIENT_URL}/users/auth/reset-password?token=${rawToken}`;
 
       // Store Mail data in db
-      const mailRecord = await emailModel.create({
+      const emailDoc = await emailModel.create({
         recipient: user?._id,
         recipientEmail: user?.email,
         subject: 'Password Reset Request',
@@ -681,9 +722,26 @@ class UserAuthController {
         }),
       });
 
-      await sendEmailQueue.add('send-email', {
-        emailId: mailRecord._id.toString(),
-      });
+      try {
+        await sendEmailService({
+          recipient: emailDoc.recipientEmail,
+          subject: emailDoc.subject,
+          htmlTemplate: emailDoc.body,
+        });
+
+        emailDoc.status = EmailStatus.SENT;
+        emailDoc.sendAt = new Date();
+
+        await emailDoc.save({ session: null, validateBeforeSave: false });
+
+        Logger.info(`Email sent successfully: ${emailDoc._id}`);
+      } catch (error) {
+        emailDoc.status = EmailStatus.FAILED;
+        await emailDoc.save();
+
+        Logger.error(`Email sending failed: ${emailDoc._id}`, error);
+        throw error;
+      }
 
       Logger.debug('Email sent for forgot password');
 
@@ -756,7 +814,7 @@ class UserAuthController {
 
       const resetPasswordLink = `${env.CLIENT_URL}/users/auth/reset-password?token=${rawToken}`;
 
-      const mailRecord = await emailModel.create({
+      const emailDoc = await emailModel.create({
         recipient: user?._id,
         recipientEmail: user?.email,
         subject: 'Password Reset Request',
@@ -771,9 +829,26 @@ class UserAuthController {
         }),
       });
 
-      await sendEmailQueue.add('send-email', {
-        emailId: mailRecord._id.toString(),
-      });
+      try {
+        await sendEmailService({
+          recipient: emailDoc.recipientEmail,
+          subject: emailDoc.subject,
+          htmlTemplate: emailDoc.body,
+        });
+
+        emailDoc.status = EmailStatus.SENT;
+        emailDoc.sendAt = new Date();
+
+        await emailDoc.save({ session: null, validateBeforeSave: false });
+
+        Logger.info(`Email sent successfully: ${emailDoc._id}`);
+      } catch (error) {
+        emailDoc.status = EmailStatus.FAILED;
+        await emailDoc.save();
+
+        Logger.error(`Email sending failed: ${emailDoc._id}`, error);
+        throw error;
+      }
 
       req.flash('success', 'A new OTP has been sent to your email');
       return res.redirect('/users/auth/resend-verification');
@@ -868,10 +943,23 @@ class UserAuthController {
         return res.redirect('/users/auth/login');
       }
 
-      // TODO: BULL MQ JOB FOR DELETING REFRESH TOKEN, EMAILS, VERIFICATION CODES
-      await logoutCleanupQueue.add('cleanup-auth-data', {
-        userId: userId.toString(),
-      });
+      await Promise.all([
+        refreshTokenModel.deleteMany({ userId }),
+
+        emailModel.deleteMany({
+          recipient: userId,
+          type: {
+            $in: [
+              EmailType.FORGOT_PASSWORD,
+              EmailType.PASSWORD_RESET,
+              EmailType.EMAIL_VERIFICATION,
+              EmailType.ACCOUNT_VERIFICATION,
+            ],
+          },
+        }),
+
+        verificationCodeModel.deleteMany({ userId }),
+      ]);
 
       req.flash('success', 'Logged out successfully');
 

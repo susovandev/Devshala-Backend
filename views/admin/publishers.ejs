@@ -78,7 +78,7 @@
   <% if (pub.status === 'ACTIVE') { %>
 
     <form
-      action="/admin/publishers/<%= pub._id %>/block"
+      action="/admins/publishers/<%= pub._id %>/block"
       method="POST"
       class="inline"
     >
@@ -91,7 +91,7 @@
     </form>
 
     <form
-      action="/admin/publishers/<%= pub._id %>/disable"
+      action="/admins/publishers/<%= pub._id %>/disable"
       method="POST"
       class="inline"
     >
@@ -108,7 +108,7 @@
   <% if (pub.status === 'BLOCKED' || pub.status === 'DISABLED') { %>
 
     <form
-      action="/admin/publishers/<%= pub._id %>/activate"
+      action="/admins/publishers/<%= pub._id %>/activate"
       method="POST"
       class="inline"
     >
@@ -154,7 +154,7 @@
     </div>
 
     <!-- Form -->
-    <form method="POST" action="/admin/publishers" class="px-6 py-6 space-y-5">
+    <form method="POST" action="/admins/publishers" class="px-6 py-6 space-y-5">
 
       <!-- Username -->
       <div>

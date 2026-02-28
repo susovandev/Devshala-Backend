@@ -24,41 +24,41 @@ router.get('/forgot-password', adminAuthController.getAdminForgetPasswordPage);
 
 router.get(
   '/reset-password',
-  validateRequest(resetPasswordTokenSchema, 'query'),
+  // validateRequest(resetPasswordTokenSchema, 'query'),
   adminAuthController.getAdminResetPasswordPage,
 );
 
 router.get(
   '/resend-verification',
-  validateRequest(resendOtpSchema, 'query'),
+  // validateRequest(resendOtpSchema, 'query'),
   adminAuthController.getAdminResendVerificationPage,
 );
 
 router.post(
   '/login',
-  loginLimiter,
-  validateRequest(loginSchema),
+  // loginLimiter,
+  // validateRequest(loginSchema),
   adminAuthController.adminLoginHandler,
 );
 
 router.post(
   '/forgot-password',
-  forgotPasswordLimiter,
-  validateRequest(forgotPasswordSchema),
+  // forgotPasswordLimiter,
+  // validateRequest(forgotPasswordSchema),
   adminAuthController.adminForgotPasswordHandler,
 );
 
 router.post(
   '/resend-verification',
-  verifyLimiter,
-  validateRequest(resendOtpSchema),
+  // verifyLimiter,
+  // validateRequest(resendOtpSchema),
   adminAuthController.adminResendOtpHandler,
 );
 
 router.post(
   '/reset-password',
-  resetPasswordLimiter,
-  validateRequest(resetPasswordSchema),
+  // resetPasswordLimiter,
+  // validateRequest(resetPasswordSchema),
   adminAuthController.adminResetPasswordHandler,
 );
 

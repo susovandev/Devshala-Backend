@@ -30,14 +30,14 @@ router.get('/reset-password', userAuthController.getUserResetPasswordPage);
 
 router.post(
   '/register',
-  registerLimiter,
+  // registerLimiter,
   validateRequest(registerSchema),
   userAuthController.userRegisterHandler,
 );
 
 router.post(
   '/verify-otp',
-  verifyLimiter,
+  // verifyLimiter,
   validateRequest(otpValidationSchema),
   userAuthController.userVerifyOtpHandler,
 );
@@ -46,21 +46,21 @@ router.post('/resend-otp', verifyLimiter, userAuthController.userResendOTPHandle
 
 router.post(
   '/resend-verification',
-  verifyLimiter,
+  // verifyLimiter,
   validateRequest(resendOtpSchema),
   userAuthController.userResendForgotPasswordLinkHandler,
 );
 
 router.post(
   '/login',
-  loginLimiter,
+  // loginLimiter,
   validateRequest(loginSchema),
   userAuthController.userLoginHandler,
 );
 
 router.post(
   '/forgot-password',
-  forgotPasswordLimiter,
+  // forgotPasswordLimiter,
   validateRequest(forgotPasswordSchema),
   userAuthController.userForgotPasswordHandler,
 );
@@ -68,7 +68,7 @@ router.post(
 router.post(
   '/reset-password',
   validateRequest(resetPasswordSchema),
-  resetPasswordLimiter,
+  // resetPasswordLimiter,
   userAuthController.userResetPasswordHandler,
 );
 

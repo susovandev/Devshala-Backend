@@ -8,7 +8,7 @@ class AdminNotificationController {
     try {
       if (!req.user) {
         req.flash('error', 'Please login again');
-        return res.redirect('/admin/auth/login');
+        return res.redirect('/admins/auth/login');
       }
 
       const adminId = req.user?._id;
@@ -49,7 +49,7 @@ class AdminNotificationController {
       Logger.warn((error as Error).message);
 
       req.flash('error', 'Something went wrong');
-      return res.redirect('/admin/dashboard');
+      return res.redirect('/admins/dashboard');
     }
   }
   async markNotificationAsRead(req: Request, res: Response) {

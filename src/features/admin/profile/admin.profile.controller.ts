@@ -48,7 +48,7 @@ class AdminProfileController {
         Logger.warn('Admin not found');
 
         req.flash('error', 'Unauthorized access please try again later');
-        return res.redirect('/admin/auth/login');
+        return res.redirect('/admins/auth/login');
       }
 
       const adminId = req.user._id;
@@ -84,7 +84,7 @@ class AdminProfileController {
       Logger.warn(`${(error as Error).message}`);
 
       req.flash('error', (error as Error).message);
-      return res.redirect('/admin/auth/login');
+      return res.redirect('/admins/auth/login');
     }
   }
 
@@ -98,7 +98,7 @@ class AdminProfileController {
         Logger.warn('Admin not found');
 
         req.flash('error', 'Admin not found please try again');
-        return res.redirect('/admin/profile');
+        return res.redirect('/admins/profile');
       }
 
       // 1.Check if local file path is not found
@@ -106,20 +106,20 @@ class AdminProfileController {
         Logger.warn('User id or avatar local file path not found');
 
         req.flash('error', 'Please change your avatar and try again');
-        return res.redirect('/admin/profile');
+        return res.redirect('/admins/profile');
       }
 
       // 2. upload avatar to cloudinary
       const cloudinaryResponse = await uploadOnCloudinary({
         localFilePath: avatarLocalFilePath,
         resourceType: CloudinaryResourceType.IMAGE,
-        uploadFolder: `${CLOUDINARY_FOLDER_NAME}/admin/avatar`,
+        uploadFolder: `${CLOUDINARY_FOLDER_NAME}/admins/avatar`,
       });
       if (!cloudinaryResponse) {
         Logger.warn('Uploading avatar to cloudinary failed');
 
         req.flash('error', 'Something went wrong please try again');
-        return res.redirect('/admin/profile');
+        return res.redirect('/admins/profile');
       }
 
       // 3. if avatar is uploaded successfully, update user avatar in db delete from cloudinary
@@ -142,15 +142,15 @@ class AdminProfileController {
         Logger.warn('Updating user avatar failed');
 
         req.flash('error', 'Something went wrong please try again');
-        return res.redirect('/admin/profile');
+        return res.redirect('/admins/profile');
       }
 
       req.flash('success', 'Avatar updated successfully');
-      return res.redirect('/admin/profile');
+      return res.redirect('/admins/profile');
     } catch (error) {
       Logger.error(`${(error as Error).message}`);
       req.flash('error', (error as Error).message);
-      return res.redirect('/admin/profile');
+      return res.redirect('/admins/profile');
     } finally {
       // 5. delete avatar local file
       if (req.file?.path) {
@@ -170,7 +170,7 @@ class AdminProfileController {
       const userId = req.user?._id;
       if (!userId) {
         req.flash('error', 'Admin Id is required');
-        return res.redirect('/admin/login');
+        return res.redirect('/admins/login');
       }
 
       //Normalize body
@@ -189,7 +189,7 @@ class AdminProfileController {
 
         if (existingUser) {
           req.flash('error', 'This username is already taken');
-          return res.redirect('/admin/profile');
+          return res.redirect('/admins/profile');
         }
 
         updatePayload.username = username.trim();
@@ -211,7 +211,7 @@ class AdminProfileController {
 
       if (Object.keys(updatePayload).length === 0) {
         req.flash('info', 'No changes detected');
-        return res.redirect('/admin/profile');
+        return res.redirect('/admins/profile');
       }
 
       const updatedResult = await userModel.findByIdAndUpdate(
@@ -222,15 +222,15 @@ class AdminProfileController {
 
       if (!updatedResult) {
         req.flash('error', 'Profile update failed');
-        return res.redirect('/admin/profile');
+        return res.redirect('/admins/profile');
       }
 
       req.flash('success', 'Profile updated successfully');
-      return res.redirect('/admin/profile');
+      return res.redirect('/admins/profile');
     } catch (error) {
       Logger.error((error as Error).message);
       req.flash('error', (error as Error).message);
-      return res.redirect('/admin/profile');
+      return res.redirect('/admins/profile');
     }
   }
 
@@ -246,7 +246,7 @@ class AdminProfileController {
       Logger.error(`${(error as Error).message}`);
 
       req.flash('error', (error as Error).message);
-      return res.redirect('/admin/login');
+      return res.redirect('/admins/login');
     }
   }
 
@@ -258,7 +258,7 @@ class AdminProfileController {
         Logger.warn(`Unauthorized access`);
 
         req.flash('error', 'Unauthorized access');
-        return res.redirect('/admin/auth/login');
+        return res.redirect('/admins/auth/login');
       }
 
       const adminId = req.user?._id;
@@ -270,21 +270,21 @@ class AdminProfileController {
         Logger.warn('Passwords do not match');
 
         req.flash('error', 'Passwords do not match');
-        return res.redirect('/admin/profile/change-password');
+        return res.redirect('/admins/profile/change-password');
       }
 
       if (currentPassword === newPassword) {
         Logger.warn('New password cannot be same as old password');
 
         req.flash('error', 'New password cannot be same as old password');
-        return res.redirect('/admin/profile/change-password');
+        return res.redirect('/admins/profile/change-password');
       }
 
       if (currentPassword === confirmPassword) {
         Logger.warn('New password cannot be same as old password');
 
         req.flash('error', 'New password cannot be same as old password');
-        return res.redirect('/admin/profile/change-password');
+        return res.redirect('/admins/profile/change-password');
       }
 
       // 1.Find user with userId
@@ -293,7 +293,7 @@ class AdminProfileController {
         Logger.warn('User not found in db');
 
         req.flash('error', 'Some error occurred please try again');
-        return res.redirect('/admin/auth/login');
+        return res.redirect('/admins/auth/login');
       }
 
       // 3. Check password
@@ -305,7 +305,7 @@ class AdminProfileController {
         Logger.warn('Password is incorrect');
 
         req.flash('error', 'Please enter correct password');
-        return res.redirect('/admin/profile/change-password');
+        return res.redirect('/admins/profile/change-password');
       }
 
       // 4. Hash password
@@ -314,7 +314,7 @@ class AdminProfileController {
         Logger.warn('Hashing password failed');
 
         req.flash('error', 'Some error occurred please try again');
-        return res.redirect('/admin/profile/change-password');
+        return res.redirect('/admins/profile/change-password');
       }
 
       // 5. Update password
@@ -329,7 +329,7 @@ class AdminProfileController {
         Logger.warn('Updating password failed');
 
         req.flash('error', 'Some error occurred please try again');
-        return res.redirect('/admin/profile/change-password');
+        return res.redirect('/admins/profile/change-password');
       }
 
       // 6. Remove refresh token
@@ -340,16 +340,16 @@ class AdminProfileController {
         Logger.warn('Deleting refresh token record failed');
 
         req.flash('error', 'Some error occurred please try again');
-        return res.redirect('/admin/profile');
+        return res.redirect('/admins/profile');
       }
 
       req.flash('success', 'Password updated successfully');
-      return res.redirect('/admin/auth/login');
+      return res.redirect('/admins/auth/login');
     } catch (error) {
       Logger.error(`${(error as Error).message}`);
 
       req.flash('error', (error as Error).message);
-      return res.redirect('/admin/auth/login');
+      return res.redirect('/admins/auth/login');
     }
   }
 }

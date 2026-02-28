@@ -11,7 +11,7 @@ class AdminCommentController {
         Logger.warn('Admin not found');
 
         req.flash('error', 'Unauthorized access please try again');
-        return res.redirect('/admin/dashboard');
+        return res.redirect('/admins/dashboard');
       }
 
       const page = Number(req.query.page) || 1;
@@ -75,7 +75,7 @@ class AdminCommentController {
       Logger.warn((error as Error).message);
 
       req.flash('error', 'Something went wrong');
-      return res.redirect('/admin/dashboard');
+      return res.redirect('/admins/dashboard');
     }
   }
 

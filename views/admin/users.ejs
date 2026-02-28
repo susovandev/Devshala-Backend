@@ -109,7 +109,7 @@
 
   <% if (user.status !== 'ACTIVE') { %>
     <form
-      action="/admin/users/<%= user._id %>/activate"
+      action="/admins/users/<%= user._id %>/activate"
       method="POST"
       class="inline-block"
     >
@@ -275,7 +275,7 @@
     </div>
 
     <!-- FORM -->
-    <form action="/admin/publishers" method="POST" class="space-y-5">
+    <form action="/admins/publishers" method="POST" class="space-y-5">
 
       <!-- INPUT -->
       <div>
@@ -361,9 +361,8 @@ document.addEventListener('DOMContentLoaded', () => {
         reasonTitle.innerText =
           action === 'block' ? 'Block User' : 'Disable User';
 
-        // ✅ ABSOLUTE + CORRECT ROUTE
         reasonForm.action =
-          `/admin/users/${id}/${action}`;
+          `/admins/users/${id}/${action}`;
       }
 
       modal.classList.remove('hidden');
